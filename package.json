@@ -16,6 +16,9 @@
     "account:reset": "node tools/account.mjs reset"
   },
   "dependencies": {
+    "dompurify": "3.4.17",
+    "highlight.js": "11.12.0",
+    "marked": "18.1.0",
     "trystero": "0.26.0"
   },
   "devDependencies": {

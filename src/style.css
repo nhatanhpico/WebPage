@@ -1,5 +1,122 @@
-/* Material Design 3: Roboto, vai màu M3 (sinh từ màu gốc xanh #415f91), shape / elevation / state layer theo spec */
+/* Material Design 3: Roboto, vai màu M3, shape / elevation / state layer theo spec.
+   5 giao diện màu chọn bằng html[data-theme] (gắn trong <head> trước khi vẽ); mặc định = xanh đậm (navy) */
 :root {
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  --shape-xs: 4px;
+  --shape-s: 8px;
+  --shape-m: 12px;
+  --shape-l: 16px;
+  --shape-xl: 28px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* M3 emphasized */
+
+  /* Khối code luôn nền tối (dễ đọc trên mọi giao diện), màu cú pháp kiểu GitHub Dark */
+  --code-bg: #0d1117;
+  --code-head: #161b22;
+  --code-fg: #e6edf3;
+}
+
+:root,
+:root[data-theme="navy"] {
+  color-scheme: dark;
+  --primary: #a8c8ff;
+  --on-primary: #00306b;
+  --primary-container: #1f4a8f;
+  --on-primary-container: #d9e6ff;
+  --secondary-container: #2b3f63;
+  --on-secondary-container: #d7e3ff;
+  --tertiary-container: #3a3a72;
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --surface: #0f1b33;
+  --on-surface: #e1e8f6;
+  --on-surface-variant: #b6c2d9;
+  --outline: #7f8ba3;
+  --outline-variant: #33435f;
+  --surface-lowest: #0a1326;
+  --surface-low: #13213c;
+  --surface-container: #172744;
+  --surface-high: #1e3051;
+  --surface-highest: #273a5f;
+  --inverse-surface: #e1e8f6;
+  --inverse-on-surface: #1c2a44;
+  --inverse-primary: #2c5cb3;
+  --success: #7ddc9a;
+  --scrim: rgba(0, 4, 16, 0.6);
+  --glow-1: rgba(90, 150, 255, 0.28);
+  --glow-2: rgba(150, 120, 255, 0.18);
+  --card: var(--surface-container);
+  --card-shadow: 0 0 0 1px rgba(160, 190, 255, 0.08), 0 16px 44px rgba(0, 6, 24, 0.55);
+}
+
+:root[data-theme="purple"] {
+  color-scheme: dark;
+  --primary: #d4bbff;
+  --on-primary: #3e1a78;
+  --primary-container: #563496;
+  --on-primary-container: #ecdcff;
+  --secondary-container: #3d2d5c;
+  --on-secondary-container: #eadcff;
+  --tertiary-container: #5b2c57;
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --surface: #1a1029;
+  --on-surface: #ece2f7;
+  --on-surface-variant: #cdc1de;
+  --outline: #978ba8;
+  --outline-variant: #45385a;
+  --surface-lowest: #130b1f;
+  --surface-low: #211633;
+  --surface-container: #261a3b;
+  --surface-high: #302447;
+  --surface-highest: #3b2e55;
+  --inverse-surface: #ece2f7;
+  --inverse-on-surface: #2c2140;
+  --inverse-primary: #6d4bb5;
+  --success: #7ddc9a;
+  --scrim: rgba(10, 0, 20, 0.6);
+  --glow-1: rgba(170, 110, 255, 0.28);
+  --glow-2: rgba(255, 110, 200, 0.14);
+  --card: var(--surface-container);
+  --card-shadow: 0 0 0 1px rgba(210, 180, 255, 0.08), 0 16px 44px rgba(10, 0, 24, 0.55);
+}
+
+:root[data-theme="black"] {
+  color-scheme: dark;
+  --primary: #a8c7fa;
+  --on-primary: #062e6f;
+  --primary-container: #0842a0;
+  --on-primary-container: #d3e3fd;
+  --secondary-container: #004a77;
+  --on-secondary-container: #c2e7ff;
+  --tertiary-container: #4a3c6b;
+  --error: #f2b8b5;
+  --on-error: #601410;
+  --surface: #131314;
+  --on-surface: #e3e3e3;
+  --on-surface-variant: #c4c7c5;
+  --outline: #8e918f;
+  --outline-variant: #444746;
+  --surface-lowest: #0e0e0e;
+  --surface-low: #1b1b1c;
+  --surface-container: #1e1f20;
+  --surface-high: #282a2c;
+  --surface-highest: #333537;
+  --inverse-surface: #e3e3e3;
+  --inverse-on-surface: #303030;
+  --inverse-primary: #0b57d0;
+  --success: #6dd58c;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --glow-1: rgba(66, 133, 244, 0.16);
+  --glow-2: rgba(155, 114, 203, 0.12);
+  --card: var(--surface-container);
+  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="white"] {
   color-scheme: light;
   --primary: #0b57d0;
   --on-primary: #ffffff;
@@ -29,53 +146,38 @@
   --glow-2: rgba(124, 77, 255, 0.12);
   --card: var(--surface-lowest);
   --card-shadow: 0 1px 2px rgba(60, 64, 67, 0.15), 0 8px 28px rgba(60, 64, 67, 0.12);
-
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
-  --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
-  --elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
-
-  --shape-xs: 4px;
-  --shape-s: 8px;
-  --shape-m: 12px;
-  --shape-l: 16px;
-  --shape-xl: 28px;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
-  /* M3 emphasized */
 }
 
-/* Bảng màu Google Material 3 (giống Gmail / Gemini): xanh #0b57d0, nền xám trung tính */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --primary: #a8c7fa;
-    --on-primary: #062e6f;
-    --primary-container: #0842a0;
-    --on-primary-container: #d3e3fd;
-    --secondary-container: #004a77;
-    --on-secondary-container: #c2e7ff;
-    --tertiary-container: #4a3c6b;
-    --error: #f2b8b5;
-    --on-error: #601410;
-    --surface: #131314;
-    --on-surface: #e3e3e3;
-    --on-surface-variant: #c4c7c5;
-    --outline: #8e918f;
-    --outline-variant: #444746;
-    --surface-lowest: #0e0e0e;
-    --surface-low: #1b1b1c;
-    --surface-container: #1e1f20;
-    --surface-high: #282a2c;
-    --surface-highest: #333537;
-    --inverse-surface: #e3e3e3;
-    --inverse-on-surface: #303030;
-    --inverse-primary: #0b57d0;
-    --success: #6dd58c;
-    --scrim: rgba(0, 0, 0, 0.6);
-    --glow-1: rgba(66, 133, 244, 0.22);
-    --glow-2: rgba(155, 114, 203, 0.18);
-    --card: var(--surface-container);
-    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 40px rgba(0, 0, 0, 0.45);
-  }
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --primary: #7c5800;
+  --on-primary: #ffffff;
+  --primary-container: #ffdf9e;
+  --on-primary-container: #271900;
+  --secondary-container: #f1e2bd;
+  --on-secondary-container: #251a04;
+  --tertiary-container: #e7e1c4;
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --surface: #f7f0dc;
+  --on-surface: #2b2618;
+  --on-surface-variant: #575040;
+  --outline: #877f6a;
+  --outline-variant: #d4c8aa;
+  --surface-lowest: #fffcf2;
+  --surface-low: #f2ead3;
+  --surface-container: #ece3c9;
+  --surface-high: #e5dbbf;
+  --surface-highest: #ddd2b4;
+  --inverse-surface: #34302a;
+  --inverse-on-surface: #f8f0e2;
+  --inverse-primary: #f6bd49;
+  --success: #2e6b30;
+  --scrim: rgba(40, 30, 0, 0.3);
+  --glow-1: rgba(246, 189, 73, 0.30);
+  --glow-2: rgba(214, 150, 90, 0.18);
+  --card: var(--surface-lowest);
+  --card-shadow: 0 1px 2px rgba(90, 70, 20, 0.15), 0 8px 28px rgba(90, 70, 20, 0.12);
 }
 
 *,
@@ -102,6 +204,7 @@ body {
   letter-spacing: 0.031em;
   color: var(--on-surface);
   background: var(--surface);
+  transition: background-color 0.3s linear, color 0.3s linear;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -835,8 +938,8 @@ code {
   font-size: 16px;
   line-height: 24px;
   letter-spacing: 0.031em;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .link {
@@ -1050,6 +1153,313 @@ code {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* ---- Bảng màu: các ô tròn, không chữ ---- */
+.menu.swatches {
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--shape-xl);
+}
+
+.swatch {
+  --sw: #1f4a8f;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: var(--sw);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), box-shadow 0.15s linear;
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch[data-theme="navy"] { --sw: linear-gradient(135deg, #0f1b33 50%, #a8c8ff 50%); }
+.swatch[data-theme="purple"] { --sw: linear-gradient(135deg, #1a1029 50%, #d4bbff 50%); }
+.swatch[data-theme="black"] { --sw: linear-gradient(135deg, #131314 50%, #a8c7fa 50%); }
+.swatch[data-theme="white"] { --sw: linear-gradient(135deg, #ffffff 50%, #0b57d0 50%); border-color: #c4c7c5; }
+.swatch[data-theme="paper"] { --sw: linear-gradient(135deg, #f7f0dc 50%, #7c5800 50%); border-color: #d4c8aa; }
+
+.swatch .i {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.15s linear, transform 0.15s var(--ease);
+}
+
+.swatch[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--surface-container), 0 0 0 4px var(--primary);
+}
+
+.swatch[aria-checked="true"] .i {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Thanh tin đã ghim (dưới top app bar) ---- */
+.pin-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 0 4px 8px 16px;
+}
+
+.pin-jump {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--shape-l);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  text-align: left;
+  cursor: pointer;
+  animation: enter 0.25s var(--ease) both;
+}
+
+.pin-jump:hover {
+  background: color-mix(in srgb, var(--on-secondary-container) 8%, var(--secondary-container));
+}
+
+.pin-jump > .i {
+  width: 20px;
+  height: 20px;
+  rotate: 30deg;
+}
+
+.pin-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pin-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.033em;
+  opacity: 0.85;
+}
+
+.pin-snippet {
+  font-size: 14px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Ghim trên từng tin ---- */
+.pin-mark {
+  display: none;
+  color: var(--primary);
+}
+
+.pin-mark .i {
+  width: 14px;
+  height: 14px;
+  margin: 0 2px;
+  rotate: 30deg;
+}
+
+.note.pinned .pin-mark {
+  display: inline-grid;
+}
+
+.note.pinned .bubble {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.note-pin {
+  width: 32px;
+  height: 32px;
+  margin: -5px 0;
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+
+.note-pin .i {
+  width: 18px;
+  height: 18px;
+}
+
+.note-pin[aria-pressed="true"] {
+  color: var(--primary);
+}
+
+.note:hover .note-pin,
+.note-pin:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .note-pin {
+    opacity: 0.7;
+  }
+}
+
+/* nhảy tới tin đã ghim → nháy sáng một lần */
+.note.flash .bubble {
+  animation: flash 1.2s var(--ease);
+}
+
+@keyframes flash {
+  0%, 60% {
+    box-shadow: 0 0 0 4px var(--primary), 0 0 24px var(--primary);
+  }
+}
+
+/* ---- Markdown trong bong bóng ---- */
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md table,
+.md .code-block,
+.md pre {
+  margin: 0 0 8px;
+}
+
+.md ul,
+.md ol {
+  padding-left: 22px;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.md h1 {
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.md blockquote {
+  padding-left: 10px;
+  border-left: 3px solid color-mix(in srgb, currentColor 40%, transparent);
+  opacity: 0.9;
+}
+
+.md hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.md table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.md th,
+.md td {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.md :not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.code-block {
+  overflow: hidden;
+  border-radius: var(--shape-m);
+  background: var(--code-bg);
+  color: var(--code-fg);
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 4px 12px;
+  background: var(--code-head);
+  font-size: 12px;
+  color: #9da7b3;
+}
+
+.code-copy {
+  padding: 2px 10px;
+  border: 1px solid #30363d;
+  border-radius: 999px;
+  background: none;
+  font-size: 12px;
+  color: #c9d1d9;
+  cursor: pointer;
+}
+
+.code-copy:hover {
+  background: #21262d;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.code-block code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: inherit;
+  white-space: pre;
+}
+
+.hljs-comment, .hljs-quote, .hljs-meta { color: #8b949e; }
+.hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-template-tag { color: #ff7b72; }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-template-variable { color: #a5d6ff; }
+.hljs-number, .hljs-literal, .hljs-attr, .hljs-attribute, .hljs-variable, .hljs-selector-attr, .hljs-symbol { color: #79c0ff; }
+.hljs-title, .hljs-section, .hljs-title.function_, .hljs-name { color: #d2a8ff; }
+.hljs-built_in, .hljs-type, .hljs-title.class_, .hljs-params { color: #ffa657; }
+.hljs-deletion { color: #ffdcd7; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
 
 /* ---- Ô soạn: thanh dạng viên thuốc trên surface-container-high ---- */
 .dock {

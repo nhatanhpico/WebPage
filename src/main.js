@@ -3,10 +3,12 @@ import account from './account.js'
 import { b64, unb64 } from './crypto.js'
 import { isV2, login, openWith } from './accounts.js'
 import { connect, MAX_BYTES } from './sync.js'
+import { renderMarkdown, plainSnippet } from './markdown.js'
 
 const $ = id => document.getElementById(id)
 const html = document.documentElement
 const SESSION = 'space_key' // khoá đã dẫn xuất (không phải mật khẩu)
+const THEME = 'space_theme'
 const MAX_IMGS = 6
 const MAX_FILES = 10
 const MAX_FILE_BYTES = 25 * 1024 * 1024 // tổng dung lượng tệp mỗi ghi chú
@@ -26,7 +28,8 @@ const space = $('space'), list = $('notes'), empty = $('empty'), feed = $('feed'
 const presence = $('presence'), presenceText = $('presence-text'), appBar = $('app-bar')
 const accountBtn = $('account-btn'), accountMenu = $('account-menu')
 const snackbar = $('snackbar'), snackText = $('snackbar-text'), snackAction = $('snackbar-action')
-const clearDialog = $('clear-dialog')
+const confirmDialog = $('confirm-dialog'), pinBar = $('pin-bar')
+const themeBtn = $('theme-btn'), themeMenu = $('theme-menu')
 const micBtn = $('mic-btn'), recorder = $('recorder'), composeRow = $('compose-row'), recTime = $('rec-time')
 const composer = $('composer'), textBox = $('text'), fileInput = $('file'), previews = $('previews')
 const sendBtn = $('send-btn'), composeErr = $('compose-error'), lightbox = $('lightbox')
@@ -39,7 +42,7 @@ let pending = [] // đính kèm chờ gửi: { kind: 'img', src, w, h } | { kind
 let busy = 0
 let unread = 0
 let myName = '' // tên tài khoản đang đăng nhập (giải mã từ account.js)
-let undo = null // xoá đang chờ: { id, li, timer }
+let pin = { id: null, at: 0, by: '' } // tin đang ghim (chỉ 1); bên nào ghim/bỏ ghim sau cùng thì thắng
 const GROUP_MS = 5 * 60 * 1000
 
 /* ================= LOGIN ================= */
@@ -139,13 +142,14 @@ async function enter({ keys, name }) {
 
 $('logout-btn').addEventListener('click', () => {
   stopRecording(false)
-  commitUndo()
-  closeMenu()
+  closeMenus()
   link?.leave()
   link = null
   store.del(SESSION)
   notes.clear()
   dead.clear()
+  pin = { id: null, at: 0, by: '' }
+  renderPin()
   list.replaceChildren()
   resetComposer()
   hideSnack()
@@ -155,32 +159,59 @@ $('logout-btn').addEventListener('click', () => {
   lockUser.focus()
 })
 
-/* ---- Menu tài khoản ---- */
-function openMenu() {
-  accountMenu.hidden = false
-  accountBtn.setAttribute('aria-expanded', 'true')
-  $('logout-btn').focus()
+/* ---- Menu (tài khoản, bảng màu) ---- */
+const menus = [[accountBtn, accountMenu], [themeBtn, themeMenu]]
+
+function openMenu(btn, menu) {
+  closeMenus()
+  menu.hidden = false
+  btn.setAttribute('aria-expanded', 'true')
+  menu.querySelector('[aria-checked="true"], button')?.focus()
 }
 
-function closeMenu() {
-  accountMenu.hidden = true
-  accountBtn.setAttribute('aria-expanded', 'false')
+function closeMenus() {
+  for (const [btn, menu] of menus) {
+    menu.hidden = true
+    btn.setAttribute('aria-expanded', 'false')
+  }
 }
 
-accountBtn.addEventListener('click', e => {
-  e.stopPropagation()
-  accountMenu.hidden ? openMenu() : closeMenu()
-})
+for (const [btn, menu] of menus) {
+  btn.addEventListener('click', e => {
+    e.stopPropagation()
+    menu.hidden ? openMenu(btn, menu) : closeMenus()
+  })
+}
 document.addEventListener('click', e => {
-  if (!accountMenu.hidden && !accountMenu.contains(e.target)) closeMenu()
+  if (!menus.some(([, m]) => m.contains(e.target))) closeMenus()
 })
+
+/* ---- Giao diện màu (lưu riêng từng thiết bị) ---- */
+const THEMES = { navy: '#0f1b33', purple: '#1a1029', black: '#131314', white: '#f8fafd', paper: '#f7f0dc' }
+
+function applyTheme(name) {
+  if (!THEMES[name]) name = 'navy'
+  html.dataset.theme = name
+  $('theme-meta').content = THEMES[name]
+  for (const b of themeMenu.querySelectorAll('.swatch')) b.setAttribute('aria-checked', String(b.dataset.theme === name))
+  store.set(THEME, name)
+}
+
+themeMenu.addEventListener('click', e => {
+  const b = e.target.closest('.swatch')
+  if (!b) return
+  applyTheme(b.dataset.theme)
+  closeMenus()
+  themeBtn.focus()
+})
+applyTheme(html.dataset.theme)
 
 /* ================= ĐỒNG BỘ ================= */
 function onPeers(count, peerId, joined) {
   setPresence(count)
   // thiết bị mới vào → gửi cho nó toàn bộ ghi chú đang có
   if (!joined || !link) return
-  link.send({ t: 'sync', notes: [], dead: [...dead] }, peerId)
+  link.send({ t: 'sync', notes: [], dead: [...dead], pin }, peerId)
   for (const n of notes.values()) link.send({ t: 'add', note: n }, peerId)
 }
 
@@ -192,8 +223,11 @@ function onOp(op) {
     killNote(op.id)
   } else if (op.t === 'clear') {
     if (Array.isArray(op.ids)) op.ids.forEach(killNote)
+  } else if (op.t === 'pin') {
+    applyPin(op.pin)
   } else if (op.t === 'sync') {
     if (Array.isArray(op.dead)) op.dead.forEach(killNote)
+    applyPin(op.pin)
     const stick = nearBottom()
     if (Array.isArray(op.notes)) op.notes.forEach(n => addNote(n, false))
     if (stick) scrollDown()
@@ -259,6 +293,7 @@ function addNote(raw, scroll = true) {
   list.insertBefore(li, ref ? ref.nextSibling : list.firstChild)
   regroup(li)
   regroup(li.nextElementSibling)
+  if (pin.id === n.id) renderPin() // ghim tới trước, tin tới sau (đồng bộ lúc mới vào)
   updateEmpty()
   if (stick) scrollDown()
   return true
@@ -267,16 +302,13 @@ function addNote(raw, scroll = true) {
 function killNote(id) {
   if (typeof id !== 'string') return
   dead.add(id)
-  if (undo?.id === id) {
-    clearTimeout(undo.timer)
-    undo = null
-    hideSnack()
-  }
   if (!notes.delete(id)) return
   const li = list.querySelector(`li[data-id="${CSS.escape(id)}"]`)
   const next = li?.nextElementSibling
   li?.remove()
   regroup(next)
+  if (pin.id === id) pin = { ...pin, id: null } // xoá tin đang ghim → bỏ ghim luôn
+  renderPin()
   updateEmpty()
 }
 
@@ -329,8 +361,8 @@ function renderNote(n) {
   if (n.voice) bubble.append(voicePlayer(n.voice))
   for (const f of n.files) bubble.append(fileChip(f))
   if (n.text.trim()) {
-    const p = make('p', 'note-text')
-    linkify(p, n.text)
+    const p = make('div', 'note-text md')
+    p.append(renderMarkdown(n.text))
     bubble.append(p)
   }
 
@@ -343,8 +375,15 @@ function renderNote(n) {
   del.title = 'Delete for everyone'
   del.setAttribute('aria-label', 'Delete note')
   del.append(icon('i-delete'))
-  del.addEventListener('click', () => deleteWithUndo(n.id))
-  meta.append(time, del)
+  del.addEventListener('click', () => deleteNote(n.id))
+  const pinBtn = make('button', 'icon-btn note-pin')
+  pinBtn.type = 'button'
+  pinBtn.append(icon('i-pin'))
+  pinBtn.addEventListener('click', () => (pin.id === n.id ? unpin() : pinNote(n.id)))
+  const pinMark = make('span', 'pin-mark')
+  pinMark.append(icon('i-pin'))
+  pinMark.title = 'Pinned'
+  meta.append(time, pinMark, pinBtn, del)
 
   body.append(bubble, meta)
   li.append(make('span', 'avatar', initials(by)), body)
@@ -454,35 +493,127 @@ function icon(id) {
   return svg
 }
 
-/* ---- Xoá kèm "Hoàn tác" (snackbar M3): ẩn ngay, chỉ gửi lệnh xoá sau 5 giây ---- */
-function deleteWithUndo(id) {
-  commitUndo()
-  const li = list.querySelector(`li[data-id="${CSS.escape(id)}"]`)
-  if (!li) return
-  li.hidden = true
-  regroup(li.nextElementSibling)
-  updateEmpty()
-  undo = { id, li, timer: setTimeout(commitUndo, 5000) }
-  showSnack('Note deleted', 'Undo', () => {
-    if (!undo) return
-    clearTimeout(undo.timer)
-    undo.li.hidden = false
-    regroup(undo.li)
-    regroup(undo.li.nextElementSibling)
-    undo = null
-    updateEmpty()
-  })
+/* ---- Hộp thoại xác nhận (dialog M3) dùng chung ---- */
+function confirmBox({ icon: ic, title, text, ok }) {
+  $('confirm-icon').setAttribute('href', '#' + ic)
+  $('confirm-title').textContent = title
+  $('confirm-text').textContent = text
+  $('confirm-ok').textContent = ok
+  confirmDialog.returnValue = ''
+  confirmDialog.showModal()
+  return new Promise(resolve => confirmDialog.addEventListener('close', () => resolve(confirmDialog.returnValue === 'ok'), { once: true }))
 }
 
-function commitUndo() {
-  if (!undo) return
-  const { id, timer } = undo
-  clearTimeout(timer)
-  undo = null
+async function deleteNote(id) {
+  const ok = await confirmBox({
+    icon: 'i-delete',
+    title: 'Delete this message?',
+    text: pin.id === id
+      ? 'It will be removed from every signed-in device, and the pin will be removed too.'
+      : 'It will be removed from every signed-in device.',
+    ok: 'Delete',
+  })
+  if (!ok || !notes.has(id)) return
   killNote(id)
   link?.send({ t: 'del', id })
-  hideSnack()
+  showSnack('Message deleted')
 }
+
+/* ---- Ghim tin nhắn: chỉ 1 tin, đồng bộ mọi thiết bị ---- */
+async function pinNote(id) {
+  if (pin.id && pin.id !== id && notes.has(pin.id)) {
+    const ok = await confirmBox({
+      icon: 'i-pin',
+      title: 'Replace pinned message?',
+      text: 'Only one message can be pinned. The message that is pinned now will be unpinned.',
+      ok: 'Pin',
+    })
+    if (!ok) return
+  }
+  if (!notes.has(id)) return
+  setPin({ id, at: Date.now(), by: myName })
+  showSnack('Message pinned')
+}
+
+function unpin() {
+  if (!pin.id) return
+  setPin({ id: null, at: Date.now(), by: myName })
+  showSnack('Message unpinned')
+}
+
+function setPin(p) {
+  pin = p
+  renderPin()
+  link?.send({ t: 'pin', pin: p })
+}
+
+function applyPin(p) {
+  if (!p || !Number.isFinite(p.at)) return
+  const id = typeof p.id === 'string' && !dead.has(p.id) ? p.id : null
+  if (p.at < pin.at || (p.at === pin.at && String(id) <= String(pin.id))) return // giữ bản mới hơn
+  pin = { id, at: p.at, by: typeof p.by === 'string' ? p.by.slice(0, 32) : '' }
+  renderPin()
+}
+
+function noteSummary(n) {
+  if (n.text.trim()) return plainSnippet(n.text)
+  if (n.voice) return 'Voice message'
+  if (n.files.length) return n.files.map(f => f.name).join(', ')
+  return n.imgs.length > 1 ? `${n.imgs.length} photos` : 'Photo'
+}
+
+function renderPin() {
+  const n = pin.id && notes.get(pin.id)
+  pinBar.hidden = !n
+  if (n) {
+    $('pin-label').textContent = `Pinned · ${n.by || 'Unknown'}`
+    $('pin-snippet').textContent = noteSummary(n)
+  }
+  for (const li of list.children) {
+    const on = !!n && li.dataset.id === pin.id
+    li.classList.toggle('pinned', on)
+    const b = li.querySelector('.note-pin')
+    if (b) {
+      b.setAttribute('aria-pressed', String(on))
+      b.title = on ? 'Unpin message' : 'Pin message'
+      b.setAttribute('aria-label', b.title)
+    }
+  }
+}
+
+function jumpTo(id) {
+  const li = list.querySelector(`li[data-id="${CSS.escape(id)}"]`)
+  if (!li) return
+  li.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  li.classList.remove('flash')
+  void li.offsetWidth
+  li.classList.add('flash')
+}
+
+$('pin-jump').addEventListener('click', () => pin.id && jumpTo(pin.id))
+$('pin-close').addEventListener('click', unpin)
+
+// Nút "Copy" trong khối code
+list.addEventListener('click', async e => {
+  const b = e.target.closest('.code-copy')
+  if (!b) return
+  const code = b.closest('.code-block').querySelector('code').textContent
+  try {
+    await navigator.clipboard.writeText(code)
+    b.textContent = 'Copied'
+  } catch {
+    // trình duyệt cũ / không cho quyền clipboard → cách cũ
+    const t = make('textarea')
+    t.value = code
+    t.style.position = 'fixed'
+    t.style.opacity = '0'
+    document.body.append(t)
+    t.select()
+    b.textContent = document.execCommand('copy') ? 'Copied' : 'Copy failed'
+    t.remove()
+  }
+  setTimeout(() => (b.textContent = 'Copy'), 1500)
+})
 
 let snackTimer = 0
 function showSnack(text, action, onAction) {
@@ -515,36 +646,8 @@ function when(at) {
   return d.toDateString() === new Date().toDateString() ? t : d.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + t
 }
 
-// Link bấm được — dựng bằng text node, không bao giờ dùng innerHTML với nội dung người dùng
-const URL_RE = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi
-
-function linkify(p, text) {
-  let last = 0
-  for (const m of text.matchAll(URL_RE)) {
-    let url = m[0].replace(/[.,;:!?]+$/, '')
-    if (url.endsWith(')') && !url.includes('(')) url = url.slice(0, -1)
-    const href = /^www\./i.test(url) ? 'https://' + url : url
-    let ok = false
-    try {
-      ok = /^https?:$/.test(new URL(href).protocol)
-    } catch { /* link hỏng → để chữ thường */ }
-    p.append(text.slice(last, m.index))
-    if (ok) {
-      const a = make('a', 'link', url)
-      a.href = href
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer nofollow'
-      p.append(a)
-    } else {
-      p.append(url)
-    }
-    last = m.index + url.length
-  }
-  p.append(text.slice(last))
-}
-
 function updateEmpty() {
-  empty.hidden = notes.size - (undo ? 1 : 0) > 0
+  empty.hidden = notes.size > 0
 }
 
 function nearBottom() {
@@ -555,22 +658,23 @@ function scrollDown() {
   requestAnimationFrame(() => feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' }))
 }
 
-/* ---- Xoá tất cả: hộp thoại xác nhận (dialog M3) ---- */
-$('clear-btn').addEventListener('click', () => {
+/* ---- Xoá tất cả ---- */
+$('clear-btn').addEventListener('click', async () => {
   if (!notes.size) {
-    showSnack('There are no notes to clear')
+    showSnack('There are no messages to clear')
     return
   }
-  clearDialog.showModal()
-})
-
-clearDialog.addEventListener('close', () => {
-  if (clearDialog.returnValue !== 'clear') return
-  commitUndo()
+  const ok = await confirmBox({
+    icon: 'i-sweep',
+    title: 'Clear all messages?',
+    text: "All messages are removed from every signed-in device. This can't be undone.",
+    ok: 'Clear all',
+  })
+  if (!ok) return
   const ids = [...notes.keys()]
   ids.forEach(killNote)
   link?.send({ t: 'clear', ids })
-  showSnack('All notes cleared')
+  showSnack('All messages cleared')
 })
 
 feed.addEventListener('scroll', () => appBar.classList.toggle('scrolled', feed.scrollTop > 0), { passive: true })
@@ -613,7 +717,8 @@ async function sendNote(note) {
 
 textBox.addEventListener('keydown', e => {
   // máy tính: Enter gửi, Shift+Enter xuống dòng; điện thoại: Enter xuống dòng. Bỏ qua khi đang gõ bộ gõ (IME)
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !coarse) {
+  const inFence = (textBox.value.slice(0, textBox.selectionStart).match(/```/g) || []).length % 2 === 1
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !coarse && !inFence) {
     e.preventDefault()
     composer.requestSubmit()
   }
@@ -864,9 +969,12 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
   if (rec) stopRecording(false)
   else if (!lightbox.hidden) closeLightbox()
-  else if (!accountMenu.hidden) {
-    closeMenu()
-    accountBtn.focus()
+  else {
+    const open = menus.find(([, m]) => !m.hidden)
+    if (open) {
+      closeMenus()
+      open[0].focus()
+    }
   }
 })
 
