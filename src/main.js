@@ -46,7 +46,7 @@ const GROUP_MS = 5 * 60 * 1000
 async function boot() {
   if (!isV2(account)) {
     store.del(SESSION) // tài khoản đã bị xoá → đăng xuất mọi thiết bị
-    $('lock-text').innerHTML = 'No account has been set up yet. Run <code>npm run account:add</code>, then push.'
+    $('lock-text').textContent = 'No account has been created.' // không gợi ý cách tạo tài khoản trên trang công khai
     for (const x of [lockUser, lockPass, lockBtn]) x.disabled = true
     html.classList.remove('resume')
     return
