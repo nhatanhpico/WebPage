@@ -37,7 +37,7 @@ async function main() {
       console.error('Run this in a terminal (or set SPACE_USER and SPACE_PASS).')
       process.exit(1)
     }
-    console.log('Set the one account for Our space. The password is never saved anywhere.\n')
+    console.log('Set the account for Shared Notes. The password is never saved anywhere.\n')
     user = (await ask('Account: ')).trim()
     pass = await ask('Password: ', true)
     const again = await ask('Repeat password: ', true)
@@ -62,7 +62,7 @@ export default ${JSON.stringify({ v: 1, iterations: ITERATIONS, salt, verify }, 
 `
   writeFileSync(OUT, body)
   console.log('✔ Account saved to src/account.js')
-  console.log('  Devices that were logged in with an older password will be logged out.')
+  console.log('  Devices that were signed in with an older password will be signed out.')
   console.log('  Next: git add src/account.js && git commit -m "Update account" && git push')
 }
 

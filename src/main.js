@@ -35,7 +35,7 @@ let unread = 0
 /* ================= LOGIN ================= */
 async function boot() {
   if (!account) {
-    $('lock-text').innerHTML = 'No account yet.<br>Run <code>npm run account</code>, then push.'
+    $('lock-text').innerHTML = 'No account has been set up yet. Run <code>npm run account</code>, then push.'
     for (const x of [lockUser, lockPass, lockBtn]) x.disabled = true
     html.classList.remove('resume')
     return
@@ -55,12 +55,12 @@ async function boot() {
 lock.addEventListener('submit', async e => {
   e.preventDefault()
   lockBtn.disabled = true
-  lockBtn.textContent = 'Unlocking…'
+  lockBtn.textContent = 'Signing in…'
   lockErr.textContent = ''
   try {
     const master = await deriveMaster(lockUser.value, lockPass.value, account.salt, account.iterations)
     if ((await verifierOf(master)) !== account.verify) {
-      lockErr.textContent = 'Wrong account or password'
+      lockErr.textContent = 'Incorrect account or password.'
       lock.classList.remove('shake')
       void lock.offsetWidth
       lock.classList.add('shake')
@@ -75,7 +75,7 @@ lock.addEventListener('submit', async e => {
     lockErr.textContent = 'Something went wrong, please try again'
   } finally {
     lockBtn.disabled = false
-    lockBtn.textContent = 'Unlock'
+    lockBtn.textContent = 'Sign in'
   }
 })
 
@@ -100,10 +100,7 @@ $('logout-btn').addEventListener('click', () => {
   list.replaceChildren()
   resetComposer()
   space.hidden = true
-  gate.hidden = false
-  lock.classList.remove('enter')
-  void lock.offsetWidth
-  lock.classList.add('enter')
+  gate.hidden = false // hiện lại → animation của thẻ chạy lại
   lockUser.focus()
 })
 
@@ -143,19 +140,19 @@ function onOp(op) {
 function setPresence(count) {
   presence.classList.toggle('on', count > 0)
   presenceText.textContent = count > 0
-    ? `Synced with ${count} device${count > 1 ? 's' : ''}`
-    : 'Looking for your other devices…'
+    ? `Connected · ${count} other device${count > 1 ? 's' : ''}`
+    : 'Waiting for other devices…'
 }
 
 function bumpUnread() {
   unread++
-  document.title = `(${unread}) Our space`
+  document.title = `(${unread}) Shared Notes`
 }
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && unread) {
     unread = 0
-    document.title = 'Our space'
+    document.title = 'Shared Notes'
   }
 })
 
@@ -212,14 +209,34 @@ function renderNote(n) {
   const li = make('li', 'note' + (isMine(n) ? ' mine' : ''))
   li.dataset.id = n.id
   li.dataset.at = n.at
-  const card = make('div', 'note-card')
+  const card = make('article', 'note-card')
 
+  const head = make('header', 'note-head')
+  const by = n.by || 'Unknown'
+  const time = make('time', 'note-time', when(n.at))
+  time.dateTime = new Date(n.at).toISOString()
+  time.title = new Date(n.at).toLocaleString()
+  const del = make('button', 'note-del', 'Delete')
+  del.type = 'button'
+  del.title = 'Delete on all devices'
+  armed(del, 'Confirm', () => {
+    killNote(n.id)
+    link?.send({ t: 'del', id: n.id })
+  })
+  head.append(make('span', 'avatar', initials(by)), make('span', 'note-by', by), time, del)
+  card.append(head)
+
+  if (n.text.trim()) {
+    const p = make('p', 'note-text')
+    linkify(p, n.text)
+    card.append(p)
+  }
   if (n.imgs.length) {
     const grid = make('div', 'note-imgs n' + Math.min(n.imgs.length, 4))
     for (const im of n.imgs) {
       const img = make('img')
       img.src = im.src
-      img.alt = 'Photo'
+      img.alt = 'Attached image'
       img.decoding = 'async'
       if (im.w && im.h) {
         img.width = im.w
@@ -230,25 +247,14 @@ function renderNote(n) {
     }
     card.append(grid)
   }
-  if (n.text.trim()) {
-    const p = make('p', 'note-text')
-    linkify(p, n.text)
-    card.append(p)
-  }
-
-  const meta = make('div', 'note-meta')
-  meta.append(make('span', 'note-by', n.by || 'Someone'), make('time', 'note-time', when(n.at)))
-  const del = make('button', 'note-del', '×')
-  del.type = 'button'
-  del.title = 'Delete on all devices'
-  del.setAttribute('aria-label', 'Delete note')
-  armed(del, 'Delete?', () => {
-    killNote(n.id)
-    link?.send({ t: 'del', id: n.id })
-  })
-  meta.append(del)
-  li.append(card, meta)
+  li.append(card)
   return li
+}
+
+function initials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  const s = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] || '?')[0]
+  return s.toUpperCase()
 }
 
 function when(at) {
@@ -300,25 +306,26 @@ function scrollDown() {
 // Bấm lần 1 hỏi lại, lần 2 mới làm (không dùng confirm())
 function armed(btn, label, action) {
   let timer = 0
-  const original = btn.textContent
+  const target = btn.querySelector('.label') || btn
+  const original = target.textContent
   btn.addEventListener('click', () => {
     if (btn.classList.contains('armed')) {
       clearTimeout(timer)
       btn.classList.remove('armed')
-      btn.textContent = original
+      target.textContent = original
       action()
       return
     }
     btn.classList.add('armed')
-    btn.textContent = label
+    target.textContent = label
     timer = setTimeout(() => {
       btn.classList.remove('armed')
-      btn.textContent = original
+      target.textContent = original
     }, 2500)
   })
 }
 
-armed($('clear-btn'), 'Clear all?', () => {
+armed($('clear-btn'), 'Confirm clear', () => {
   const ids = [...notes.keys()]
   ids.forEach(killNote)
   link?.send({ t: 'clear', ids })
@@ -346,7 +353,7 @@ composer.addEventListener('submit', async e => {
     imgs: pending.map(({ src, w, h }) => ({ src, w, h })),
   }
   if (JSON.stringify(note).length > MAX_BYTES) {
-    composeErr.textContent = 'Too big to send — try fewer photos'
+    composeErr.textContent = 'This note is too large. Try attaching fewer images.'
     return
   }
   resetComposer()
@@ -429,19 +436,19 @@ async function addFiles(files) {
   if (!imgs.length) return
   const room = MAX_IMGS - pending.length
   if (room <= 0) {
-    composeErr.textContent = `Up to ${MAX_IMGS} photos per note`
+    composeErr.textContent = `You can attach up to ${MAX_IMGS} images per note.`
     return
   }
   busy++
   refreshSend()
-  composeErr.textContent = imgs.length > room ? `Up to ${MAX_IMGS} photos per note` : ''
+  composeErr.textContent = imgs.length > room ? `You can attach up to ${MAX_IMGS} images per note.` : ''
   for (const f of imgs.slice(0, room)) {
     try {
       pending.push(await prepImage(f))
       renderPreviews()
     } catch (err) {
       console.warn(err)
-      composeErr.textContent = `Couldn't read “${f.name}”`
+      composeErr.textContent = `Couldn't read the image “${f.name}”.`
     }
   }
   busy--
@@ -491,7 +498,7 @@ function renderPreviews() {
     img.alt = ''
     const x = make('button', 'preview-x', '×')
     x.type = 'button'
-    x.setAttribute('aria-label', 'Remove photo')
+    x.setAttribute('aria-label', 'Remove image')
     x.addEventListener('click', () => {
       pending.splice(i, 1)
       renderPreviews()
