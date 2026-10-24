@@ -47,7 +47,7 @@ async function boot() {
   if (!isV2(account)) {
     store.del(SESSION) // tài khoản đã bị xoá → đăng xuất mọi thiết bị
     $('lock-text').textContent = 'No account has been created.' // không gợi ý cách tạo tài khoản trên trang công khai
-    for (const x of [lockUser, lockPass, lockBtn]) x.disabled = true
+    for (const x of [lockUser, lockPass, lockBtn, $('toggle-pass')]) x.disabled = true
     html.classList.remove('resume')
     return
   }
@@ -89,6 +89,7 @@ lock.addEventListener('submit', async e => {
     }
     store.set(SESSION, JSON.stringify({ salt: account.salt, key: b64(opened.master) }))
     lockPass.value = ''
+    showPassword(false)
     await enter(opened)
   } catch (err) {
     console.error(err)
@@ -100,6 +101,25 @@ lock.addEventListener('submit', async e => {
 })
 
 for (const x of [lockUser, lockPass]) x.addEventListener('input', () => lockErr.textContent && fieldError(''))
+
+/* ---- Hiện / ẩn mật khẩu (trailing icon của text field) ---- */
+const togglePass = $('toggle-pass')
+
+function showPassword(show) {
+  lockPass.type = show ? 'text' : 'password'
+  const label = show ? 'Hide password' : 'Show password'
+  togglePass.setAttribute('aria-pressed', String(show))
+  togglePass.setAttribute('aria-label', label)
+  togglePass.title = label
+  togglePass.querySelector('use').setAttribute('href', show ? '#i-eye-off' : '#i-eye')
+}
+
+// giữ focus + vị trí con trỏ trong ô mật khẩu khi bấm nút
+togglePass.addEventListener('pointerdown', e => e.preventDefault())
+togglePass.addEventListener('click', () => {
+  showPassword(lockPass.type === 'password')
+  lockPass.focus()
+})
 
 async function enter({ keys, name }) {
   myName = name

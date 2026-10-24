@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f9f9ff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f0f4f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131314" media="(prefers-color-scheme: dark)">
   <meta name="robots" content="noindex, nofollow">
   <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
   <title>Shared Notes</title>
@@ -38,25 +38,34 @@
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" /></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" /></symbol>
     <symbol id="i-forum" viewBox="0 0 24 24"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z" /></symbol>
   </svg>
 
   <!-- ============ SIGN IN ============ -->
   <section class="gate" id="gate">
     <form class="signin" id="lock" novalidate>
-      <svg class="i signin-logo" aria-hidden="true"><use href="#i-note" /></svg>
+      <div class="signin-brand">
+        <span class="logo-tile" aria-hidden="true"><svg class="i"><use href="#i-note" /></svg></span>
+        <span class="signin-app">Shared Notes</span>
+      </div>
       <h1 class="headline">Sign in</h1>
-      <p class="supporting" id="lock-text">to continue to Shared Notes</p>
+      <p class="supporting" id="lock-text">Use your account to continue</p>
 
       <div class="field" id="field-user">
         <input class="field-input" id="lock-user" name="username" type="text" placeholder=" " autocomplete="username"
           autocapitalize="none" autocorrect="off" spellcheck="false" required>
         <label class="field-label" for="lock-user">Account</label>
       </div>
-      <div class="field" id="field-pass">
+      <div class="field has-trailing" id="field-pass">
         <input class="field-input" id="lock-pass" name="password" type="password" placeholder=" "
           autocomplete="current-password" required>
         <label class="field-label" for="lock-pass">Password</label>
+        <button class="icon-btn field-trailing" id="toggle-pass" type="button" aria-label="Show password"
+          aria-pressed="false" title="Show password">
+          <svg class="i" aria-hidden="true"><use href="#i-eye" /></svg>
+        </button>
       </div>
       <p class="field-error" id="lock-error" role="alert"></p>
 

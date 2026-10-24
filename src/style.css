@@ -1,29 +1,34 @@
 /* Material Design 3: Roboto, vai màu M3 (sinh từ màu gốc xanh #415f91), shape / elevation / state layer theo spec */
 :root {
   color-scheme: light;
-  --primary: #415f91;
+  --primary: #0b57d0;
   --on-primary: #ffffff;
-  --primary-container: #d6e3ff;
-  --on-primary-container: #001b3e;
-  --secondary-container: #dae2f9;
-  --on-secondary-container: #131c2b;
-  --error: #ba1a1a;
+  --primary-container: #d3e3fd;
+  --on-primary-container: #041e49;
+  --secondary-container: #c2e7ff;
+  --on-secondary-container: #001d35;
+  --tertiary-container: #e8def8;
+  --error: #b3261e;
   --on-error: #ffffff;
-  --surface: #f9f9ff;
-  --on-surface: #191c20;
-  --on-surface-variant: #44474e;
-  --outline: #74777f;
-  --outline-variant: #c4c6d0;
+  --surface: #f8fafd;
+  --on-surface: #1f1f1f;
+  --on-surface-variant: #444746;
+  --outline: #747775;
+  --outline-variant: #c4c7c5;
   --surface-lowest: #ffffff;
-  --surface-low: #f3f3fa;
-  --surface-container: #ededf4;
-  --surface-high: #e7e8ee;
-  --surface-highest: #e2e2e9;
-  --inverse-surface: #2e3036;
-  --inverse-on-surface: #f0f0f7;
-  --inverse-primary: #aac7ff;
-  --success: #2e7d32;
+  --surface-low: #f0f4f9;
+  --surface-container: #e9eef6;
+  --surface-high: #e1e7ef;
+  --surface-highest: #d9dfe8;
+  --inverse-surface: #303030;
+  --inverse-on-surface: #f2f2f2;
+  --inverse-primary: #a8c7fa;
+  --success: #146c2e;
   --scrim: rgba(0, 0, 0, 0.32);
+  --glow-1: rgba(11, 87, 208, 0.16);
+  --glow-2: rgba(124, 77, 255, 0.12);
+  --card: var(--surface-lowest);
+  --card-shadow: 0 1px 2px rgba(60, 64, 67, 0.15), 0 8px 28px rgba(60, 64, 67, 0.12);
 
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
@@ -38,32 +43,38 @@
   /* M3 emphasized */
 }
 
+/* Bảng màu Google Material 3 (giống Gmail / Gemini): xanh #0b57d0, nền xám trung tính */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --primary: #aac7ff;
-    --on-primary: #0a305f;
-    --primary-container: #284777;
-    --on-primary-container: #d6e3ff;
-    --secondary-container: #3e4759;
-    --on-secondary-container: #dae2f9;
-    --error: #ffb4ab;
-    --on-error: #690005;
-    --surface: #111318;
-    --on-surface: #e2e2e9;
-    --on-surface-variant: #c4c6d0;
-    --outline: #8e9099;
-    --outline-variant: #44474e;
-    --surface-lowest: #0c0e13;
-    --surface-low: #191c20;
-    --surface-container: #1d2024;
-    --surface-high: #282a2f;
-    --surface-highest: #33353a;
-    --inverse-surface: #e2e2e9;
-    --inverse-on-surface: #2e3036;
-    --inverse-primary: #415f91;
-    --success: #81c995;
+    --primary: #a8c7fa;
+    --on-primary: #062e6f;
+    --primary-container: #0842a0;
+    --on-primary-container: #d3e3fd;
+    --secondary-container: #004a77;
+    --on-secondary-container: #c2e7ff;
+    --tertiary-container: #4a3c6b;
+    --error: #f2b8b5;
+    --on-error: #601410;
+    --surface: #131314;
+    --on-surface: #e3e3e3;
+    --on-surface-variant: #c4c7c5;
+    --outline: #8e918f;
+    --outline-variant: #444746;
+    --surface-lowest: #0e0e0e;
+    --surface-low: #1b1b1c;
+    --surface-container: #1e1f20;
+    --surface-high: #282a2c;
+    --surface-highest: #333537;
+    --inverse-surface: #e3e3e3;
+    --inverse-on-surface: #303030;
+    --inverse-primary: #0b57d0;
+    --success: #6dd58c;
     --scrim: rgba(0, 0, 0, 0.6);
+    --glow-1: rgba(66, 133, 244, 0.22);
+    --glow-2: rgba(155, 114, 203, 0.18);
+    --card: var(--surface-container);
+    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 40px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -308,27 +319,47 @@ code {
   display: grid;
   place-items: center;
   padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
-  background: var(--surface-container);
+  background:
+    radial-gradient(55% 45% at 12% 8%, var(--glow-1), transparent 70%),
+    radial-gradient(50% 45% at 90% 95%, var(--glow-2), transparent 70%),
+    var(--surface);
 }
 
 .signin {
-  --field-bg: var(--surface-lowest);
-  width: min(448px, 100%);
-  padding: 36px 40px 28px;
+  --field-bg: var(--card);
+  width: min(440px, 100%);
+  padding: 32px 36px 24px;
   border-radius: var(--shape-xl);
-  background: var(--surface-lowest);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
   animation: enter 0.4s var(--ease) both;
 }
 
-.signin-logo {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 16px;
-  color: var(--primary);
+.signin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.logo-tile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--shape-m);
+  background: linear-gradient(135deg, var(--primary-container), var(--tertiary-container));
+  color: var(--on-primary-container);
+}
+
+.signin-app {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .signin .supporting {
-  margin: 8px 0 28px;
+  margin: 4px 0 28px;
   font-size: 16px;
   line-height: 24px;
 }
@@ -337,11 +368,18 @@ code {
   margin-top: 20px;
 }
 
+.signin .btn.filled {
+  min-width: 112px;
+}
+
 .signin-foot {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin: 28px 0 0;
+  margin: 24px -36px 0;
+  padding: 16px 24px 0;
+  border-top: 1px solid var(--outline-variant);
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.033em;
@@ -413,6 +451,25 @@ code {
 .field-input:focus {
   padding: 0 14px;
   border: 2px solid var(--primary);
+}
+
+.field.has-trailing .field-input {
+  padding-right: 52px;
+}
+
+.field.has-trailing .field-input:focus {
+  padding-right: 51px;
+}
+
+.field-trailing {
+  position: absolute;
+  top: 8px;
+  right: 4px;
+}
+
+/* ẩn nút hiện mật khẩu có sẵn của Edge để không bị trùng */
+.field-input::-ms-reveal {
+  display: none;
 }
 
 .field-label {
@@ -1260,12 +1317,17 @@ code {
 /* ---- Điện thoại (compact window: < 600dp) ---- */
 @media (max-width: 599px) {
   .gate {
-    background: var(--surface-lowest);
     place-items: start center;
+    padding-top: calc(32px + env(safe-area-inset-top, 0px));
   }
 
   .signin {
-    padding: 24px 8px;
+    padding: 28px 20px 20px;
+  }
+
+  .signin-foot {
+    margin-left: -20px;
+    margin-right: -20px;
   }
 
   .app-bar-inner {
