@@ -35,6 +35,7 @@ let unread = 0
 /* ================= LOGIN ================= */
 async function boot() {
   if (!account) {
+    store.del(SESSION) // tài khoản đã bị xoá → đăng xuất mọi thiết bị
     $('lock-text').innerHTML = 'No account has been set up yet. Run <code>npm run account</code>, then push.'
     for (const x of [lockUser, lockPass, lockBtn]) x.disabled = true
     html.classList.remove('resume')

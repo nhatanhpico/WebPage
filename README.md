@@ -24,17 +24,23 @@ Device B ──┘  then talk directly with WebRTC (peer-to-peer, DTLS + an extr
 
 Someone who only has the link sees the sign-in page and nothing else: without the password they can't find the room, connect, read or post.
 
-## Set up the account (once)
+## Manage the account
 
-```bash
-npm install
-npm run account        # asks for Account + Password (at least 10 characters), writes src/account.js
-git add src/account.js && git commit -m "Set account" && git push
-```
+Run these in a terminal (Terminal / iTerm) inside this folder. Each command asks before writing anything, then offers to commit and push `src/account.js` for you.
 
-GitHub Actions builds and deploys the site in about a minute. Run `npm run account` again to change the password; devices that were signed in with the old one are signed out.
+| Command | What it does |
+|---|---|
+| `npm run account` | Menu with the options below |
+| `npm run account:change` | Create the account, or change the account name and/or password. Asks for the current account + password first; press Enter to keep either one. |
+| `npm run account:delete` | Delete the account. Asks for the current details and a "yes". After publishing, nobody can sign in and every device is signed out. |
+| `npm run account:status` | Shows whether an account is set, when it last changed, and whether that change is published |
 
-> The check value in `src/account.js` is public, so a weak password could be guessed offline. Use a long one.
+Options: `-- --force` skips the current-password check (if you forgot it), e.g. `npm run account:change -- --force`; `-- --no-push` only writes the file.
+
+- Any change signs out every device, which then signs in with the new details.
+- The account name and password are never stored, so nobody can read them back, including you.
+- Use at least 10 characters. The check value in `src/account.js` is public, so a weak password could be guessed offline.
+- GitHub Actions redeploys about a minute after the push.
 
 ## Develop
 
