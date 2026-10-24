@@ -36,9 +36,16 @@ export async function verifierOf(master) {
   return hex(await hkdf(master, 'verify'))
 }
 
-export async function sessionKeys(master) {
-  const [room, sdp, auth, msg] = await Promise.all(['room', 'sdp', 'auth', 'msg'].map(i => hkdf(master, i)))
+// Khoá bọc khoá chung của không gian — riêng cho từng tài khoản
+export async function wrapKeyOf(master) {
+  return subtle.importKey('raw', await hkdf(master, 'wrap'), 'AES-GCM', false, ['encrypt', 'decrypt'])
+}
+
+// Mọi khoá của không gian chung đều sinh từ một bí mật ngẫu nhiên (không phụ thuộc tài khoản nào)
+export async function sessionKeys(space) {
+  const [room, sdp, auth, msg, label] = await Promise.all(['room', 'sdp', 'auth', 'msg', 'label'].map(i => hkdf(space, i)))
   return {
+    labelKey: await subtle.importKey('raw', label, 'AES-GCM', false, ['encrypt', 'decrypt']),
     roomId: hex(room).slice(0, 32),
     sdpPassword: b64(sdp),
     authKey: await subtle.importKey('raw', auth, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']),

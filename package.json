@@ -8,9 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "account": "node tools/account.mjs",
+    "account:add": "node tools/account.mjs add",
     "account:change": "node tools/account.mjs change",
     "account:delete": "node tools/account.mjs delete",
-    "account:status": "node tools/account.mjs status"
+    "account:list": "node tools/account.mjs list",
+    "account:status": "node tools/account.mjs status",
+    "account:reset": "node tools/account.mjs reset"
   },
   "dependencies": {
     "trystero": "0.26.0"
