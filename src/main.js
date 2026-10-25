@@ -756,10 +756,12 @@ function resetComposer() {
   refreshSend()
 }
 
-fileInput.addEventListener('change', () => {
-  addFiles(fileInput.files)
-  fileInput.value = ''
-})
+for (const input of [fileInput, $('media')]) {
+  input.addEventListener('change', () => {
+    addFiles(input.files)
+    input.value = ''
+  })
+}
 
 textBox.addEventListener('paste', e => {
   const files = [...(e.clipboardData?.files || [])]
