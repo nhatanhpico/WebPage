@@ -22,7 +22,7 @@ export const DEFAULTS = {
   timeoutSeconds: 300,
   settleSeconds: 3, // đợi thêm tin (vd. ảnh rồi mới tới chữ) trước khi gửi cho AI
   trigger: '', // rỗng = trả lời mọi tin mới; vd. "@ai" = chỉ tin bắt đầu bằng @ai
-  answerOwnAccount: true, // trả lời cả tin của chính tài khoản này gửi từ thiết bị khác
+  onlyOtherAccounts: false, // bật: chỉ trả lời tin của tài khoản khác; tắt: trả lời cả tin của chính tài khoản này từ máy khác
   format: 'md', // câu trả lời gửi dạng Markdown (code, danh sách…) hay chữ thường
   prompt: '', // chỉ dẫn thêm cho AI
   chrome: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -41,6 +41,10 @@ export function load() {
     } catch (e) {
       throw new Error(`Can't read ${FILE}: ${e.message}`) // không âm thầm thay bằng mặc định
     }
+  }
+  if ('answerOwnAccount' in saved) { // tên cũ của cài đặt
+    saved.onlyOtherAccounts ??= !saved.answerOwnAccount
+    delete saved.answerOwnAccount
   }
   const cfg = {
     ...DEFAULTS,
@@ -85,6 +89,7 @@ export function validate(cfg) {
   if (!(cfg.settleSeconds >= 0 && cfg.settleSeconds <= 60)) throw new Error('settleSeconds must be 0–60.')
   if (!['md', 'plain'].includes(cfg.format)) throw new Error('format must be "md" or "plain".')
   if (typeof cfg.trigger !== 'string' || typeof cfg.prompt !== 'string') throw new Error('trigger and prompt must be text.')
+  if (typeof cfg.onlyOtherAccounts !== 'boolean' || typeof cfg.keepHistory !== 'boolean') throw new Error('onlyOtherAccounts and keepHistory must be true or false.')
 }
 
 export const isUuid = s => UUID_RE.test(s)

@@ -18,6 +18,7 @@
     "bot:setup": "node bot/bot.mjs setup",
     "bot:url": "node bot/bot.mjs url",
     "bot:new": "node bot/bot.mjs new",
+    "bot:others": "node bot/bot.mjs others",
     "bot:login": "node bot/bot.mjs login",
     "bot:logout": "node bot/bot.mjs logout",
     "bot:status": "node bot/bot.mjs status",

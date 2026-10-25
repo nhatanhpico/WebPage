@@ -5,6 +5,7 @@
 //   npm run bot:setup         đổi link, AI, cuộc hội thoại (mới / có sẵn), giữ lịch sử, tiền tố, chỉ dẫn
 //   npm run bot:url -- <link> đổi link trang
 //   npm run bot:new           lượt sau bắt đầu cuộc hội thoại mới
+//   npm run bot:others -- on|off  chỉ trả lời tin của tài khoản khác (bật) / trả lời cả tin của chính tài khoản này (tắt)
 //   npm run bot:login | bot:logout | bot:status | bot:check
 // Cờ khi chạy: --show (hiện cửa sổ Chrome), --answer-last (trả lời luôn tin mới nhất của tài khoản khác đang có)
 // Không hỏi (thử nghiệm): SHARED_NOTES_BOT_USER / SHARED_NOTES_BOT_PASS, SHARED_NOTES_BOT_HOME
@@ -74,7 +75,8 @@ function describe(cfg) {
     `Link:          ${cfg.url}`,
     `AI:            ${PROVIDERS[cfg.provider]} (${p.path})`,
     `Conversation:  ${chat}${cfg.keepHistory ? ', keep history' : ', no history between replies'}`,
-    `Answers:       ${cfg.trigger ? `messages starting with "${cfg.trigger}"` : 'every new message'}${cfg.answerOwnAccount ? '' : ' from other accounts'}, sent as ${cfg.format === 'md' ? 'Markdown' : 'plain text'}`,
+    `Answers:       ${cfg.trigger ? `messages starting with "${cfg.trigger}"` : 'every new message'}, sent as ${cfg.format === 'md' ? 'Markdown' : 'plain text'}`,
+    `From:          ${cfg.onlyOtherAccounts ? 'other accounts only' : 'any account, including this one on other devices'}`,
     `Extra prompt:  ${cfg.prompt || '(none)'}`,
   ].join('\n')
 }
@@ -96,7 +98,7 @@ async function setup() {
   await pickConversation(cfg)
   cfg.keepHistory = await yes('\nKeep history (each reply continues the same conversation)?', cfg.keepHistory)
   cfg.trigger = (await ask('\nOnly answer messages starting with (Enter = answer every message, "-" = clear)', { def: cfg.trigger })).replace(/^-$/, '')
-  cfg.answerOwnAccount = await yes('Also answer messages from this same account on other devices?', cfg.answerOwnAccount)
+  cfg.onlyOtherAccounts = await yes('Only answer messages from other accounts (not this account on other devices)?', cfg.onlyOtherAccounts)
   cfg.format = await choose('\nSend answers as', [{ value: 'md', label: 'Markdown (code blocks, lists, bold)' }, { value: 'plain', label: 'Plain text' }], cfg.format)
   cfg.prompt = (await ask('\nExtra instructions for the AI (Enter = keep, "-" = none)', { def: cfg.prompt })).replace(/^-$/, '')
   doneAsking()
@@ -144,6 +146,18 @@ function setUrl() {
   }
   save(cfg)
   console.log('✔ Link set to ' + cfg.url)
+}
+
+function others() {
+  const v = args.filter(a => !a.startsWith('--'))[1]
+  const cfg = load()
+  if (v === 'on' || v === 'off') cfg.onlyOtherAccounts = v === 'on'
+  else if (v !== undefined) fail('Usage: npm run bot:others -- on | off')
+  else cfg.onlyOtherAccounts = !cfg.onlyOtherAccounts // không ghi gì → đảo trạng thái
+  save(cfg)
+  console.log(cfg.onlyOtherAccounts
+    ? '✔ On: the bot answers only messages from other accounts.'
+    : '✔ Off: the bot also answers messages from its own account sent from other devices.')
 }
 
 function newChat() {
@@ -237,19 +251,29 @@ async function start() {
   const cleanup = () => { try { if (+fs.readFileSync(PID(), 'utf8') === process.pid) fs.rmSync(PID()) } catch { /* đã xoá */ } }
   process.on('exit', cleanup)
 
+  // đọc lại cài đặt mỗi khi có tin: bật/tắt trong lúc bot chạy có hiệu lực ngay
+  const settings = () => {
+    try {
+      cfg = load()
+    } catch (e) {
+      log('✘ Settings not reloaded: ' + e.message)
+    }
+    return cfg
+  }
   const handled = new Set() // id tin đã xử lý (trang đồng bộ lại tin cũ khi có máy mới vào)
   const pending = []
   let startedAt = Infinity, me = '', busy = false, timer = 0, latest = null, page, ctx
 
   const eligible = n => {
-    if (n.own || handled.has(n.id)) return false
-    handled.add(n.id)
+    if (handled.has(n.id)) return false
+    handled.add(n.id) // cả tin của bot: khi trang mở lại, chúng được đồng bộ về và không được trả lời
+    if (n.own) return false
     if (n.at < startedAt) {
       // tin cũ: chỉ nhớ tin mới nhất của tài khoản KHÁC (tin cũ của chính tài khoản này có thể là câu trả lời của bot)
       if (!n.mine && (!latest || n.at > latest.at)) latest = n
       return false
     }
-    if (n.mine && !cfg.answerOwnAccount) return false
+    if (n.mine && settings().onlyOtherAccounts) return false
     if (!n.text.trim() && !n.images.length) return false // chỉ có ghi âm / tệp: không đọc được
     if (cfg.trigger && !n.text.trim().toLowerCase().startsWith(cfg.trigger.toLowerCase())) return false
     return true
@@ -397,7 +421,7 @@ function split(text) {
   return parts.filter(Boolean)
 }
 
-const COMMANDS = { start, setup, url: setUrl, new: newChat, status, check: checkAll, login: () => loginCmd(true), logout: logoutCmd }
+const COMMANDS = { start, setup, url: setUrl, new: newChat, others, status, check: checkAll, login: () => loginCmd(true), logout: logoutCmd }
 if (!COMMANDS[cmd]) fail(`Unknown command "${cmd}". Commands: ${Object.keys(COMMANDS).join(', ')}`)
 try {
   await COMMANDS[cmd]()

@@ -40,12 +40,13 @@ Leave the terminal open while the bot should answer. Press **Ctrl+C** to stop it
 | `npm run bot:setup` | Change every setting, step by step (Enter keeps the current value). |
 | `npm run bot:url -- <link>` | Change only the site link, e.g. `npm run bot:url -- https://nhatanhpico.github.io/WebPage/`. |
 | `npm run bot:new` | The next answer starts a new conversation with the current AI. |
+| `npm run bot:others -- on` / `off` | **On:** answer only messages from other accounts. **Off** (default): also answer messages from the bot's own account sent from other devices. Without `on`/`off` it switches. |
 | `npm run bot:login` | Sign in again (e.g. with another account, or after a password change). |
 | `npm run bot:logout` | Sign out and remove the saved key. |
 | `npm run bot:status` | Show the settings and whether the bot is running. |
 | `npm run bot:check` | Check both CLIs (without using the model) and that the link is a Shared Notes site. |
 
-Settings changed with `bot:setup`, `bot:url` or `bot:new` apply to the next answer, even while the bot is running. A new link applies the next time you start it.
+Settings changed with `bot:setup`, `bot:others`, `bot:url` or `bot:new` apply to the next message, even while the bot is running. A new link applies the next time you start it.
 
 ## Settings (`bot:setup`)
 
@@ -56,7 +57,7 @@ Settings changed with `bot:setup`, `bot:url` or `bot:new` apply to the next answ
   - *Continue an existing conversation*: pick one from the list of recent conversations of that AI, or paste its ID. The answer is added to that conversation, with all its earlier context.
 - **Keep history** (on by default): after each answer, the next one continues the same conversation, so the AI remembers the chat. Turn it off to make every answer a fresh conversation (or always the same chosen one). `npm run bot:new` starts over.
 - **Only answer messages starting with:** e.g. `@ai`. Empty answers every new message. The prefix is removed before the message goes to the AI.
-- **Also answer messages from this same account:** when you use the bot's account on your phone too, your phone's messages are answered as well. The bot never answers its own replies.
+- **Only answer messages from other accounts** (off by default, also `npm run bot:others -- on|off`): when off, messages from the bot's own account sent from your phone or another device are answered too, as soon as they arrive. When on, only other accounts' messages are answered. Either way the bot never answers its own replies: it recognizes them by message ID.
 - **Send answers as:** Markdown (code blocks with highlighting, lists, bold) or plain text.
 - **Extra instructions:** added to every request, e.g. "Answer briefly" or "Always answer in Vietnamese".
 

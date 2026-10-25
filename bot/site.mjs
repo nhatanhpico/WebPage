@@ -30,7 +30,7 @@ function watchNotes() {
       at: +li.dataset.at,
       by: li.querySelector('.note-by')?.textContent || '',
       mine: li.classList.contains('mine'),
-      own: li.classList.contains('mine') && !!window.__botPosting, // do chính bot vừa gửi
+      own: !!window.__botOwn?.has(li.dataset.id), // do chính bot gửi (đúng ID), tin cùng tài khoản từ máy khác vẫn được trả lời
       text,
       images: [...li.querySelectorAll('.note-imgs img')].map(i => i.src),
       files: [...li.querySelectorAll('.file-name')].map(f => f.textContent),
@@ -128,12 +128,22 @@ async function setFormat(page, format) {
 export async function post(page, text, format) {
   await setFormat(page, format)
   await page.fill('#text', text)
-  await page.evaluate(() => { window.__botPosting = true })
-  try {
-    await page.click('#send-btn')
-  } finally {
-    await page.evaluate(() => { window.__botPosting = false })
-  }
+  // Bấm gửi và ghi ID tin vừa tạo trong CÙNG một lượt chạy: trang thêm tin ngay khi bấm (đồng bộ), tin từ máy
+  // khác chỉ tới ở lượt sau, nên không thể bị nhận nhầm là tin của bot. MutationObserver đọc __botOwn sau đó.
+  const ok = await page.evaluate(() => {
+    const before = new Set([...document.querySelectorAll('#notes > li')].map(li => li.dataset.id))
+    document.querySelector('#send-btn').click()
+    window.__botOwn ??= new Set()
+    let n = 0
+    for (const li of document.querySelectorAll('#notes > li.mine')) {
+      if (!before.has(li.dataset.id)) {
+        window.__botOwn.add(li.dataset.id)
+        n++
+      }
+    }
+    return n === 1
+  })
+  if (!ok) throw new Error('The site did not accept the message')
 }
 
 export const peers = page => page.evaluate(() => {
