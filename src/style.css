@@ -460,6 +460,18 @@ code {
   display: grid;
   place-items: center;
   padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  isolation: isolate;
+}
+
+/* nền phủ cả phần dưới thanh công cụ của Safari (100lvh), còn thẻ đăng nhập căn giữa vùng nhìn thấy (100dvh) */
+.gate::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  height: 100lvh;
   background:
     radial-gradient(55% 45% at 12% 8%, var(--glow-1), transparent 70%),
     radial-gradient(50% 45% at 90% 95%, var(--glow-2), transparent 70%),
@@ -911,7 +923,7 @@ code {
 }
 
 .note.cont {
-  margin-top: -6px;
+  margin-top: 2px;
 }
 
 .note.mine {
@@ -920,7 +932,7 @@ code {
 }
 
 .note > .avatar {
-  margin-bottom: 22px;
+  margin-bottom: 28px;
 }
 
 .note.mine > .avatar {
@@ -978,7 +990,8 @@ code {
 }
 
 /* Linear progress (M3) khi gửi ảnh */
-.note.sending .bubble::after {
+.note.sending .bubble::after,
+.note.sending.no-bubble .note-imgs::after {
   content: '';
   position: absolute;
   left: 0;
@@ -1011,16 +1024,35 @@ code {
 }
 
 .note-imgs {
+  position: relative;
   display: grid;
   gap: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+/* chỉ có ảnh → khối ảnh mang góc "đuôi" của bong bóng */
+.note.no-bubble .note-imgs {
+  border-radius: 20px 20px 20px 4px;
+}
+
+.note.mine.no-bubble .note-imgs {
+  border-radius: 20px 20px 4px 20px;
+}
+
+.note-imgs + .bubble {
+  margin-top: 4px;
 }
 
 .note-imgs.n2,
 .note-imgs.n4 {
+  width: min(320px, 100%);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .note-imgs.n3 {
+  width: min(360px, 100%);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -1040,17 +1072,17 @@ code {
   max-height: 400px;
 }
 
+/* nhiều ảnh: ô vuông lấp kín lưới */
 .note-imgs:not(.n1) img {
   aspect-ratio: 1;
-  height: 100%;
-  width: min(140px, 100%);
+  height: auto;
 }
 
 .note-meta {
   display: flex;
   align-items: center;
   gap: 0;
-  height: 22px;
+  height: 28px;
   padding: 0 4px 0 12px;
 }
 
@@ -1068,10 +1100,10 @@ code {
   white-space: nowrap;
 }
 
+/* nút nằm gọn trong hàng 28px: không tràn sang tin bên dưới */
 .note-del {
-  width: 32px;
-  height: 32px;
-  margin: -5px 0;
+  width: 28px;
+  height: 28px;
   opacity: 0;
   transition: opacity 0.15s linear;
 }
@@ -1345,14 +1377,14 @@ code {
   display: inline-grid;
 }
 
-.note.pinned .bubble {
+.note.pinned .bubble,
+.note.pinned.no-bubble .note-imgs {
   box-shadow: 0 0 0 2px var(--primary);
 }
 
 .note-pin {
-  width: 32px;
-  height: 32px;
-  margin: -5px 0;
+  width: 28px;
+  height: 28px;
   opacity: 0;
   transition: opacity 0.15s linear;
 }
@@ -1378,7 +1410,8 @@ code {
 }
 
 /* nhảy tới tin đã ghim → nháy sáng một lần */
-.note.flash .bubble {
+.note.flash .bubble,
+.note.flash.no-bubble .note-imgs {
   animation: flash 1.2s var(--ease);
 }
 
@@ -2084,11 +2117,6 @@ code {
 
 /* ---- Điện thoại (compact window: < 600dp) ---- */
 @media (max-width: 599px) {
-  .gate {
-    place-items: start center;
-    padding-top: calc(32px + env(safe-area-inset-top, 0px));
-  }
-
   .signin {
     padding: 28px 20px 20px;
   }

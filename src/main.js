@@ -380,7 +380,7 @@ function renderNote(n) {
   const body = make('div', 'note-body')
   body.append(make('span', 'note-by', by))
 
-  const bubble = make('div', 'bubble')
+  // ảnh: khối riêng bo góc phía trên bong bóng chữ (không bị nền bong bóng lộ ra quanh ảnh)
   if (n.imgs.length) {
     const grid = make('div', 'note-imgs n' + Math.min(n.imgs.length, 4))
     for (const im of n.imgs) {
@@ -395,8 +395,9 @@ function renderNote(n) {
       img.addEventListener('click', () => openLightbox(im.src))
       grid.append(img)
     }
-    bubble.append(grid)
+    body.append(grid)
   }
+  const bubble = make('div', 'bubble')
   if (n.voice) bubble.append(voicePlayer(n.voice))
   for (const f of n.files) bubble.append(fileChip(f))
   if (n.text.trim()) {
@@ -424,7 +425,9 @@ function renderNote(n) {
   pinMark.title = 'Pinned'
   meta.append(time, pinMark, pinBtn, del)
 
-  body.append(bubble, meta)
+  if (bubble.childElementCount) body.append(bubble)
+  else li.classList.add('no-bubble')
+  body.append(meta)
   li.append(make('span', 'avatar', initials(by)), body)
   return li
 }
