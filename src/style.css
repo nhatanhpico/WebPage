@@ -1953,6 +1953,18 @@ code {
   padding: 10px 0;
 }
 
+.snackbar-close {
+  width: 36px;
+  height: 36px;
+  margin-right: -4px;
+  color: var(--inverse-on-surface);
+}
+
+.snackbar-close .i {
+  width: 20px;
+  height: 20px;
+}
+
 .snackbar-action {
   height: 40px;
   padding: 0 12px;

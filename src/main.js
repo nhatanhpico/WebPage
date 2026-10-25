@@ -691,6 +691,8 @@ function showSnack(text, action, onAction) {
   snackTimer = setTimeout(hideSnack, action ? 5000 : 3000)
 }
 
+$('snackbar-close').addEventListener('click', hideSnack) // tự đóng sau vài giây, hoặc bấm × để đóng ngay
+
 function hideSnack() {
   clearTimeout(snackTimer)
   hideEl(snackbar)
