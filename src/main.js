@@ -777,7 +777,7 @@ function refreshSend() {
 function resetComposer() {
   textBox.value = ''
   richBox.replaceChildren()
-  richBox.classList.add('empty')
+  richBox.classList.add('blank')
   pending = []
   renderPreviews()
   grow()
@@ -833,7 +833,7 @@ function renderMode() {
   mdBar.hidden = mode !== 'md' || !!rec
   richBox.hidden = !rich
   textBox.hidden = rich
-  richBox.classList.toggle('empty', !richBox.textContent.trim() && !richBox.querySelector('li'))
+  richBox.classList.toggle('blank', !richBox.textContent.trim() && !richBox.querySelector('li'))
   $('mode-rich').setAttribute('aria-checked', String(rich))
   $('mode-md').setAttribute('aria-checked', String(mode === 'md'))
   plusBtn.classList.toggle('on', !!mode)
@@ -931,8 +931,8 @@ function updateStates() {
 richBox.addEventListener('input', () => {
   if (!richBox.textContent.trim() && !richBox.querySelector('li')) {
     if (richBox.innerHTML === '<br>') richBox.replaceChildren()
-    richBox.classList.add('empty')
-  } else richBox.classList.remove('empty')
+    richBox.classList.add('blank')
+  } else richBox.classList.remove('blank')
   refreshSend()
 })
 

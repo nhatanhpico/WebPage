@@ -1485,7 +1485,8 @@ code {
 .fs-l, .rich-input font:is([size="4"], [size="5"]) { font-size: 1.25em; line-height: 1.3; }
 .fs-xl, .rich-input font:is([size="6"], [size="7"]) { font-size: 1.6em; line-height: 1.25; }
 
-.note-text.plain {
+.note-text.plain,
+.note-text.rich {
   white-space: pre-wrap;
 }
 
@@ -1631,11 +1632,12 @@ code {
   visibility: visible;
 }
 
-/* ---- Thanh định dạng kiểu Word ---- */
+/* ---- Thanh định dạng kiểu Word: một hàng gọn phía trên ô nhập, cùng nhịp với thanh Markdown ---- */
 .format-bar {
   display: flex;
   align-items: center;
-  padding: 4px 8px 0;
+  gap: 2px;
+  padding: 4px 4px 0 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1645,14 +1647,14 @@ code {
 }
 
 .icon-btn.fmt {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--shape-s);
 }
 
 .icon-btn.fmt .i {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .icon-btn.fmt[aria-pressed="true"],
@@ -1661,10 +1663,15 @@ code {
   color: var(--on-secondary-container);
 }
 
+/* phóng to + tắt nằm sát phải, giống nút × của thanh Markdown */
+.format-bar #expand-btn {
+  margin-left: auto;
+}
+
 .fmt-sep {
   flex: none;
   width: 1px;
-  height: 20px;
+  height: 18px;
   margin: 0 4px;
   background: var(--outline-variant);
 }
@@ -1764,13 +1771,14 @@ code {
 .compose-input.rich-input {
   position: relative;
   height: auto;
+  white-space: pre-wrap; /* giữ dấu cách cuối dòng (không thì "Hello " + đậm "world" → "Helloworld") */
   min-height: 40px;
   overflow-y: auto;
   overflow-wrap: anywhere;
   cursor: text;
 }
 
-.rich-input.empty::before {
+.rich-input.blank::before {
   content: attr(data-placeholder);
   position: absolute;
   top: 8px;
@@ -2001,6 +2009,11 @@ code {
 
   .menu.plus-menu {
     left: 12px;
+  }
+
+  /* thanh định dạng vuốt ngang: mờ dần ở mép phải để biết còn nút */
+  .format-bar {
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
   }
 
   .note {
