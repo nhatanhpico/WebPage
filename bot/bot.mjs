@@ -2,7 +2,8 @@
 // Bot trả lời tự động cho Shared Notes: đăng nhập trang bằng một tài khoản, đợi tin mới, gửi cho
 // Claude Code / Antigravity CLI, rồi gửi câu trả lời bằng chính tài khoản đó.
 //   npm run bot               chạy (lần đầu hỏi tài khoản + mật khẩu; trang chỉ lưu khoá đã dẫn xuất)
-//   npm run bot:setup         đổi link, AI, cuộc hội thoại (mới / có sẵn), giữ lịch sử, tiền tố, chỉ dẫn
+//   npm run bot:settings      menu cài đặt: xem tất cả, chọn số để sửa từng mục (kể cả mục nâng cao)
+//   npm run bot:setup         hỏi lần lượt các cài đặt chính: link, AI, cuộc hội thoại, giữ lịch sử, tiền tố, chỉ dẫn
 //   npm run bot:url -- <link> đổi link trang
 //   npm run bot:new           lượt sau bắt đầu cuộc hội thoại mới
 //   npm run bot:others -- on|off  chỉ trả lời tin của tài khoản khác (bật) / trả lời cả tin của chính tài khoản này (tắt)
@@ -81,29 +82,134 @@ function describe(cfg) {
   ].join('\n')
 }
 
+/* ---- Từng mục cài đặt: dùng chung cho bot:setup (hỏi lần lượt) và bot:settings (menu) ---- */
+const onOff = v => (v ? 'on' : 'off')
+const short = (s, n = 48) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+
+async function askNumber(question, min, max, def) {
+  for (;;) {
+    const v = Number((await ask(`${question} (${min}–${max})`, { def: String(def) })).replace(',', '.'))
+    if (v >= min && v <= max) return v
+    console.log(`  Enter a number from ${min} to ${max}.`)
+  }
+}
+
+async function askPath(question, def) {
+  for (;;) {
+    const v = await ask(question, { def })
+    if (fs.existsSync(v)) return v
+    console.log('  No file at that path.')
+  }
+}
+
+const SETTINGS = [
+  {
+    label: 'Site link', show: c => c.url,
+    async edit(c) {
+      for (;;) {
+        try {
+          return void (c.url = checkUrl(await ask('Site link', { def: c.url })))
+        } catch (e) {
+          console.log('  ' + e.message)
+        }
+      }
+    },
+  },
+  {
+    label: 'AI', show: c => PROVIDERS[c.provider],
+    async edit(c) {
+      console.log('AI:')
+      c.provider = await choose('AI', Object.entries(PROVIDERS).map(([value, label]) => ({ value, label })), c.provider)
+    },
+  },
+  {
+    label: 'Conversation', show: c => (c[c.provider].mode === 'existing' ? 'continue ' + c[c.provider].sessionId : 'new conversation') + ` (${PROVIDERS[c.provider]})`,
+    edit: c => pickConversation(c),
+  },
+  {
+    label: 'Keep history', show: c => onOff(c.keepHistory),
+    async edit(c) { c.keepHistory = await yes('Keep history (each reply continues the same conversation)?', c.keepHistory) },
+  },
+  {
+    label: 'Only other accounts', show: c => onOff(c.onlyOtherAccounts),
+    async edit(c) { c.onlyOtherAccounts = await yes('Only answer messages from other accounts (not this account on other devices)?', c.onlyOtherAccounts) },
+  },
+  {
+    label: 'Trigger prefix', show: c => (c.trigger ? `"${c.trigger}"` : '(none: every new message)'),
+    async edit(c) { c.trigger = (await ask('Only answer messages starting with (Enter = keep, "-" = answer every message)', { def: c.trigger })).replace(/^-$/, '') },
+  },
+  {
+    label: 'Answer format', show: c => (c.format === 'md' ? 'Markdown' : 'plain text'),
+    async edit(c) { c.format = await choose('Send answers as', [{ value: 'md', label: 'Markdown (code blocks, lists, bold)' }, { value: 'plain', label: 'Plain text' }], c.format) },
+  },
+  {
+    label: 'Extra instructions', show: c => (c.prompt ? short(c.prompt) : '(none)'),
+    async edit(c) { c.prompt = (await ask('Extra instructions for the AI (Enter = keep, "-" = none)', { def: c.prompt })).replace(/^-$/, '') },
+  },
+  {
+    label: 'AI effort', advanced: true, show: c => c.effort,
+    async edit(c) { c.effort = await choose('Effort', ['low', 'medium', 'high'].map(v => ({ value: v, label: v })), c.effort) },
+  },
+  {
+    label: 'AI timeout', advanced: true, show: c => c.timeoutSeconds + ' s',
+    async edit(c) { c.timeoutSeconds = await askNumber('Seconds to wait for an answer', 10, 1800, c.timeoutSeconds) },
+  },
+  {
+    label: 'Wait for more messages', advanced: true, show: c => c.settleSeconds + ' s',
+    async edit(c) { c.settleSeconds = await askNumber('Seconds to wait for more messages before asking the AI', 0, 60, c.settleSeconds) },
+  },
+  {
+    label: 'Claude Code path', advanced: true, show: c => c.claude.path,
+    async edit(c) { c.claude.path = await askPath('Path to the claude CLI', c.claude.path) },
+  },
+  {
+    label: 'Antigravity path', advanced: true, show: c => c.antigravity.path,
+    async edit(c) { c.antigravity.path = await askPath('Path to the agy CLI', c.antigravity.path) },
+  },
+  {
+    label: 'Chrome path', advanced: true, show: c => c.chrome,
+    async edit(c) { c.chrome = await askPath('Path to Google Chrome', c.chrome) },
+  },
+]
+
 /* ================= LỆNH ================= */
 async function setup() {
   const cfg = load()
-  console.log('Shared Notes bot settings. Press Enter to keep the current value.\n')
-  for (;;) {
-    try {
-      cfg.url = checkUrl(await ask('Site link', { def: cfg.url }))
-      break
-    } catch (e) {
-      console.log('  ' + e.message)
-    }
+  console.log('Shared Notes bot settings. Press Enter to keep the current value.')
+  for (const s of SETTINGS.filter(s => !s.advanced)) {
+    console.log()
+    await s.edit(cfg)
   }
-  console.log('\nAI:')
-  cfg.provider = await choose('AI', Object.entries(PROVIDERS).map(([value, label]) => ({ value, label })), cfg.provider)
-  await pickConversation(cfg)
-  cfg.keepHistory = await yes('\nKeep history (each reply continues the same conversation)?', cfg.keepHistory)
-  cfg.trigger = (await ask('\nOnly answer messages starting with (Enter = answer every message, "-" = clear)', { def: cfg.trigger })).replace(/^-$/, '')
-  cfg.onlyOtherAccounts = await yes('Only answer messages from other accounts (not this account on other devices)?', cfg.onlyOtherAccounts)
-  cfg.format = await choose('\nSend answers as', [{ value: 'md', label: 'Markdown (code blocks, lists, bold)' }, { value: 'plain', label: 'Plain text' }], cfg.format)
-  cfg.prompt = (await ask('\nExtra instructions for the AI (Enter = keep, "-" = none)', { def: cfg.prompt })).replace(/^-$/, '')
   doneAsking()
   save(cfg)
   console.log('\n✔ Saved.\n\n' + describe(cfg))
+}
+
+// Menu: xem mọi cài đặt, chọn số để sửa riêng mục đó; mỗi thay đổi được lưu ngay
+async function settingsMenu() {
+  const cfg = load()
+  for (;;) {
+    console.log(`\nBot settings  (${HOME}/config.json)\n`)
+    SETTINGS.forEach((s, i) => {
+      if (s.advanced && !SETTINGS[i - 1].advanced) console.log('  Advanced')
+      console.log(`  ${String(i + 1).padStart(2)}) ${s.label.padEnd(24)}${s.show(cfg)}`)
+    })
+    console.log('   0) Done\n')
+    const a = await ask('Change which setting? (number)', { def: '0' })
+    if (a === '0') break
+    const s = SETTINGS[+a - 1]
+    if (!s) {
+      console.log('  Pick a number from the list.')
+      continue
+    }
+    console.log()
+    await s.edit(cfg)
+    save(cfg)
+    console.log(`  ✔ Saved: ${s.label} = ${s.show(cfg)}`)
+  }
+  doneAsking()
+  const pid = running()
+  console.log(pid ? 'The running bot uses the new settings from the next message (a new site link: after a restart).' : 'Start the bot with: npm run bot')
 }
 
 async function pickConversation(cfg) {
@@ -421,7 +527,7 @@ function split(text) {
   return parts.filter(Boolean)
 }
 
-const COMMANDS = { start, setup, url: setUrl, new: newChat, others, status, check: checkAll, login: () => loginCmd(true), logout: logoutCmd }
+const COMMANDS = { start, setup, settings: settingsMenu, url: setUrl, new: newChat, others, status, check: checkAll, login: () => loginCmd(true), logout: logoutCmd }
 if (!COMMANDS[cmd]) fail(`Unknown command "${cmd}". Commands: ${Object.keys(COMMANDS).join(', ')}`)
 try {
   await COMMANDS[cmd]()

@@ -15,6 +15,7 @@
     "account:status": "node tools/account.mjs status",
     "account:reset": "node tools/account.mjs reset",
     "bot": "node bot/bot.mjs start",
+    "bot:settings": "node bot/bot.mjs settings",
     "bot:setup": "node bot/bot.mjs setup",
     "bot:url": "node bot/bot.mjs url",
     "bot:new": "node bot/bot.mjs new",

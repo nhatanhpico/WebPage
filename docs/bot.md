@@ -17,8 +17,9 @@ It uses the same CLI setup as [ScreenClaude](../../hotkey): your existing `claud
 ```bash
 cd /Users/nhatanh245/Project/WebPage
 npm install            # only the first time
-npm run bot:setup      # link, AI, conversation, options
+npm run bot:setup      # first time: link, AI, conversation, options, one after another
 npm run bot            # start; the first time it asks for the account and password
+npm run bot:settings   # later: open the settings menu to change any single setting
 ```
 
 Leave the terminal open while the bot should answer. Press **Ctrl+C** to stop it.
@@ -37,7 +38,8 @@ Leave the terminal open while the bot should answer. Press **Ctrl+C** to stop it
 | Command | What it does |
 |---|---|
 | `npm run bot` | Start the bot. Add `-- --show` to watch it in a Chrome window, `-- --answer-last` to also answer the newest message from another account that is already there. |
-| `npm run bot:setup` | Change every setting, step by step (Enter keeps the current value). |
+| `npm run bot:settings` | **Open the settings menu:** shows every setting with its current value; type a number to change just that one (see below). |
+| `npm run bot:setup` | Go through the main settings one after another (Enter keeps the current value). Handy the first time. |
 | `npm run bot:url -- <link>` | Change only the site link, e.g. `npm run bot:url -- https://nhatanhpico.github.io/WebPage/`. |
 | `npm run bot:new` | The next answer starts a new conversation with the current AI. |
 | `npm run bot:others -- on` / `off` | **On:** answer only messages from other accounts. **Off** (default): also answer messages from the bot's own account sent from other devices. Without `on`/`off` it switches. |
@@ -46,9 +48,45 @@ Leave the terminal open while the bot should answer. Press **Ctrl+C** to stop it
 | `npm run bot:status` | Show the settings and whether the bot is running. |
 | `npm run bot:check` | Check both CLIs (without using the model) and that the link is a Shared Notes site. |
 
-Settings changed with `bot:setup`, `bot:others`, `bot:url` or `bot:new` apply to the next message, even while the bot is running. A new link applies the next time you start it.
+Settings changed with `bot:settings`, `bot:setup`, `bot:others`, `bot:url` or `bot:new` apply to the next message, even while the bot is running. A new link applies the next time you start it.
 
-## Settings (`bot:setup`)
+## Settings menu (`bot:settings`)
+
+```
+$ npm run bot:settings
+
+Bot settings  (~/Library/Application Support/SharedNotesBot/config.json)
+
+   1) Site link               https://nhatanhpico.github.io/WebPage/
+   2) AI                      Claude Code
+   3) Conversation            new conversation (Claude Code)
+   4) Keep history            on
+   5) Only other accounts     off
+   6) Trigger prefix          (none: every new message)
+   7) Answer format           Markdown
+   8) Extra instructions      (none)
+  Advanced
+   9) AI effort               low
+  10) AI timeout              300 s
+  11) Wait for more messages  3 s
+  12) Claude Code path        /Users/nhatanh245/.local/bin/claude
+  13) Antigravity path        /Users/nhatanh245/.local/bin/agy
+  14) Chrome path             /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+   0) Done
+
+Change which setting? (number) [0]: 5
+Only answer messages from other accounts (not this account on other devices)? (y/n) [n]: y
+  ✔ Saved: Only other accounts = on
+```
+
+Each change is saved as soon as you make it; the menu then shows again. Press **0** or Enter to close it, or Ctrl+C. Items 1–8 are explained below. The advanced items:
+
+- **AI effort:** how hard the AI thinks (`low`, `medium`, `high`). Higher is slower and uses more of your quota.
+- **AI timeout:** seconds to wait for an answer (10–1800, default 300) before posting an error.
+- **Wait for more messages:** seconds the bot waits after a new message for more before asking the AI (0–60, default 3).
+- **Claude Code / Antigravity / Chrome path:** where the programs are, if not in the default place.
+
+## Settings
 
 - **Site link:** must be `https://…` (or `http://localhost…` for testing). If the page is not a Shared Notes site, the bot refuses to run.
 - **AI:** Claude Code or Antigravity CLI. Each keeps its own conversation setting, so switching AI never loses the other one's conversation.
@@ -80,7 +118,7 @@ Settings changed with `bot:setup`, `bot:others`, `bot:url` or `bot:new` apply to
 
 | Path | Contents |
 |---|---|
-| `config.json` | Settings above, plus CLI paths (`claude.path`, `antigravity.path`), `effort` (low/medium/high), `timeoutSeconds` (300), `settleSeconds` (3), `chrome` |
+| `config.json` | All settings of `bot:settings` (change them there rather than by hand) |
 | `chrome-profile/` | The bot's own Chrome profile (site session = derived key, theme) |
 | `Conversations/` | Working folder for new Claude conversations |
 | `request-…/` | Temporary input/output of one request, deleted when it finishes |

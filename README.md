@@ -32,8 +32,9 @@ Each command offers to commit and push `src/account.js`; the site updates about 
 `npm run bot` signs in with an account, waits for new messages and answers them with **Claude Code** or **Antigravity CLI** from that account. It can start a new conversation or continue an existing one, and the site link can be changed. See **[docs/bot.md](docs/bot.md)**.
 
 ```bash
-npm run bot:setup         # link, AI, new / existing conversation, options
+npm run bot:setup         # first time: link, AI, new / existing conversation, options
 npm run bot               # start (Ctrl+C to stop)
+npm run bot:settings      # settings menu: change any single setting
 npm run bot:url -- <link> # change the site link
 ```
 
