@@ -163,19 +163,51 @@ $('logout-btn').addEventListener('click', () => {
   lockUser.focus()
 })
 
-/* ---- Menu (tài khoản, bảng màu) ---- */
+/* ---- Đóng có hiệu ứng: thêm .closing (chạy animation thu lại) rồi mới ẩn ---- */
+function afterAnim(el, fn) {
+  let done = false
+  const finish = () => {
+    if (done) return
+    done = true
+    el.removeEventListener('animationend', onEnd)
+    fn()
+  }
+  const onEnd = e => e.target === el && finish()
+  el.addEventListener('animationend', onEnd)
+  setTimeout(finish, 300) // dự phòng nếu animationend không chạy
+}
+
+function showEl(el) {
+  el.classList.remove('closing') // mở lại khi đang đóng → chạy lại hiệu ứng mở
+  el.hidden = false
+}
+
+function hideEl(el, after) {
+  if (!isShown(el)) return
+  el.classList.add('closing')
+  afterAnim(el, () => {
+    if (!el.classList.contains('closing')) return // đã mở lại giữa chừng
+    el.classList.remove('closing')
+    el.hidden = true
+    after?.()
+  })
+}
+
+const isShown = el => !el.hidden && !el.classList.contains('closing')
+
+/* ---- Menu (tài khoản, bảng màu, nút +) ---- */
 const menus = [[accountBtn, accountMenu], [themeBtn, themeMenu], [plusBtn, plusMenu]]
 
 function openMenu(btn, menu) {
   closeMenus()
-  menu.hidden = false
+  showEl(menu)
   btn.setAttribute('aria-expanded', 'true')
   menu.querySelector('[aria-checked="true"], button')?.focus()
 }
 
 function closeMenus() {
   for (const [btn, menu] of menus) {
-    menu.hidden = true
+    hideEl(menu)
     btn.setAttribute('aria-expanded', 'false')
   }
 }
@@ -183,7 +215,7 @@ function closeMenus() {
 for (const [btn, menu] of menus) {
   btn.addEventListener('click', e => {
     e.stopPropagation()
-    menu.hidden ? openMenu(btn, menu) : closeMenus()
+    isShown(menu) ? closeMenus() : openMenu(btn, menu)
   })
 }
 document.addEventListener('click', e => {
@@ -507,9 +539,28 @@ function confirmBox({ icon: ic, title, text, ok }) {
   $('confirm-text').textContent = text
   $('confirm-ok').textContent = ok
   confirmDialog.returnValue = ''
+  confirmDialog.classList.remove('closing')
   confirmDialog.showModal()
   return new Promise(resolve => confirmDialog.addEventListener('close', () => resolve(confirmDialog.returnValue === 'ok'), { once: true }))
 }
+
+// Nút trong hộp thoại và phím Esc: chạy hiệu ứng thu lại rồi mới đóng thật
+function closeDialog(value) {
+  if (confirmDialog.classList.contains('closing')) return
+  confirmDialog.classList.add('closing')
+  afterAnim(confirmDialog, () => {
+    confirmDialog.classList.remove('closing')
+    confirmDialog.close(value)
+  })
+}
+confirmDialog.querySelector('form').addEventListener('submit', e => {
+  e.preventDefault()
+  closeDialog(e.submitter?.value || '')
+})
+confirmDialog.addEventListener('cancel', e => {
+  e.preventDefault()
+  closeDialog('')
+})
 
 async function deleteNote(id) {
   const ok = await confirmBox({
@@ -636,13 +687,13 @@ function showSnack(text, action, onAction) {
     hideSnack()
     onAction?.()
   }
-  snackbar.hidden = false
+  showEl(snackbar)
   snackTimer = setTimeout(hideSnack, action ? 5000 : 3000)
 }
 
 function hideSnack() {
   clearTimeout(snackTimer)
-  snackbar.hidden = true
+  hideEl(snackbar)
 }
 
 function initials(name) {
@@ -870,18 +921,18 @@ formatBar.addEventListener('click', e => {
 })
 
 function togglePop(pop, btn) {
-  const open = pop.hidden
+  const open = !isShown(pop)
   closePops()
   if (!open) return
   const dock = $('dock').getBoundingClientRect(), r = btn.getBoundingClientRect()
-  pop.hidden = false
+  showEl(pop)
   pop.style.left = Math.max(8, Math.min(r.left - dock.left, dock.width - pop.offsetWidth - 8)) + 'px'
   pop.style.bottom = dock.bottom - r.top + 4 + 'px'
   btn.setAttribute('aria-expanded', 'true')
 }
 
 function closePops() {
-  for (const p of [sizePop, colorPop]) p.hidden = true
+  for (const p of [sizePop, colorPop]) hideEl(p)
   for (const b of formatBar.querySelectorAll('[data-pop]')) b.setAttribute('aria-expanded', 'false')
 }
 document.addEventListener('click', e => {
@@ -1167,21 +1218,20 @@ $('rec-send').addEventListener('click', () => stopRecording(true))
 /* ================= XEM ẢNH ================= */
 function openLightbox(src) {
   lightbox.firstElementChild.src = src
-  lightbox.hidden = false
+  showEl(lightbox)
 }
 
 function closeLightbox() {
-  lightbox.hidden = true
-  lightbox.firstElementChild.removeAttribute('src')
+  hideEl(lightbox, () => lightbox.firstElementChild.removeAttribute('src'))
 }
 
 lightbox.addEventListener('click', closeLightbox)
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
   if (rec) stopRecording(false)
-  else if (!lightbox.hidden) closeLightbox()
+  else if (isShown(lightbox)) closeLightbox()
   else {
-    const open = menus.find(([, m]) => !m.hidden)
+    const open = menus.find(([, m]) => isShown(m))
     if (open) {
       closeMenus()
       open[0].focus()

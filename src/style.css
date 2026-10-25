@@ -789,6 +789,24 @@ code {
   }
 }
 
+/* Đóng: thu nhỏ + mờ dần (M3 emphasized accelerate), không nhận click khi đang đóng */
+:root {
+  --ease-out: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.menu.closing,
+.fmt-pop.closing {
+  animation: menu-out 0.15s var(--ease-out) both;
+  pointer-events: none;
+}
+
+@keyframes menu-out {
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
 .menu-head {
   display: flex;
   align-items: center;
@@ -1918,6 +1936,18 @@ code {
   animation: snack-in 0.25s var(--ease) both;
 }
 
+.snackbar.closing {
+  animation: snack-out 0.15s var(--ease-out) both;
+  pointer-events: none;
+}
+
+@keyframes snack-out {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
 .snackbar-text {
   flex: 1;
   padding: 10px 0;
@@ -1958,6 +1988,23 @@ code {
 
 .dialog::backdrop {
   background: var(--scrim);
+  animation: fade 0.2s linear both;
+}
+
+.dialog[open].closing {
+  animation: dialog-out 0.15s var(--ease-out) both;
+  pointer-events: none;
+}
+
+.dialog.closing::backdrop {
+  animation: fade-out 0.15s linear both;
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 
 .dialog form {
@@ -1998,6 +2045,17 @@ code {
   background: rgba(0, 0, 0, 0.85);
   cursor: zoom-out;
   animation: fade 0.15s linear;
+}
+
+.lightbox.closing {
+  animation: fade-out 0.15s linear both;
+  pointer-events: none;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 .lightbox img {
