@@ -4,8 +4,9 @@ A private, real-time message board shared by a few accounts, hosted on **GitHub 
 
 - **Accounts:** any number of accounts, all sharing one space. Sign in once per device and you stay signed in until you choose **Sign out** (avatar menu, top right).
 - **Real time:** a message posted on one device appears instantly on every other signed-in device. Your messages sit on the right; other accounts' messages sit on the left with their account name.
-- **Text, links, images, any file, voice:** links are clickable; images show inline (resized on the device first); other files download with their original name; tap the 🎤 button for a voice message.
-- **Markdown and code:** **bold**, _italic_, lists, quotes, tables, `inline code`, and fenced code blocks with syntax highlighting. Write ` ```python ` to name the language, or leave it out and it's detected automatically. Each block has a **Copy** button. Raw HTML is shown as text, and markdown images are not loaded.
+- **Text, links, images, any file, voice:** messages are sent as plain text by default, exactly as typed, with clickable links. The **+** button opens **Photos & videos** (the phone's photo library) and **File** (the file picker). Images show inline (resized on the device first); other files download with their original name. Tap 🎤 for a voice message.
+- **Text formatting (Word-style):** **+ → Text formatting** (or Cmd/Ctrl + Shift + X) shows a toolbar: bold, italic, underline, strikethrough, text size, text color, clear formatting, bulleted and numbered lists, indent, undo/redo and a larger editor. Styles apply directly in the message box as you type, and the message arrives looking the same.
+- **Markdown and code:** **+ → Markdown & code** turns Markdown on: **bold**, _italic_, lists, quotes, tables, `inline code`, and fenced code blocks with syntax highlighting. Write ` ```python ` to name the language, or leave it out and it's detected automatically. Each block has a **Copy** button. Raw HTML is shown as text, and markdown images are not loaded. With Markdown off, `**` and ``` are sent as typed.
 - **Pin:** pin one message for everyone. A bar under the top bar jumps to it. Pinning another message asks first, because the current one will be unpinned; deleting the pinned message removes the pin.
 - **Themes:** the palette button offers dark blue (default), dark purple, black, white and paper. The choice is saved per device.
 - **Safe deletes:** deleting a message or clearing all asks for confirmation first.
@@ -42,6 +43,7 @@ Device B ──┘  then talk directly with WebRTC (peer-to-peer, DTLS + an extr
 | `src/sync.js` | [Trystero](https://github.com/dmotz/trystero) room derived from the space key. Peers must pass an HMAC challenge, and every message is AES-GCM encrypted. |
 | `src/main.js` | Sign-in, session (derived key in `localStorage`, never the password), chat feed, attachments, voice recording, pinning, themes, Material components (menus, dialog, snackbar). |
 | `src/markdown.js` | Markdown → sanitized DOM: marked (GFM) + highlight.js (named or auto-detected language) + DOMPurify. |
+| `src/rich.js` | Word-style formatting: turns the editor's content into a small set of allowed tags and classes, and re-sanitizes it on every receiving device. Also makes links clickable in plain text. |
 | `tools/account.mjs` | The account CLI. |
 
 Someone who only has the link sees the sign-in page and nothing else.

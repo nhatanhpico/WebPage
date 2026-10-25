@@ -4,11 +4,13 @@ import { b64, unb64 } from './crypto.js'
 import { isV2, login, openWith } from './accounts.js'
 import { connect, MAX_BYTES } from './sync.js'
 import { renderMarkdown, plainSnippet } from './markdown.js'
+import { COLORS, SIZES, MAX_RICH, serialize, renderRich, linkText } from './rich.js'
 
 const $ = id => document.getElementById(id)
 const html = document.documentElement
 const SESSION = 'space_key' // khoá đã dẫn xuất (không phải mật khẩu)
 const THEME = 'space_theme'
+const FORMAT = 'space_format' // kiểu soạn tin: '' (chữ thường) | 'md' | 'rich'
 const MAX_IMGS = 6
 const MAX_FILES = 10
 const MAX_FILE_BYTES = 25 * 1024 * 1024 // tổng dung lượng tệp mỗi ghi chú
@@ -33,6 +35,7 @@ const themeBtn = $('theme-btn'), themeMenu = $('theme-menu')
 const micBtn = $('mic-btn'), recorder = $('recorder'), composeRow = $('compose-row'), recTime = $('rec-time')
 const composer = $('composer'), textBox = $('text'), fileInput = $('file'), previews = $('previews')
 const sendBtn = $('send-btn'), composeErr = $('compose-error'), lightbox = $('lightbox')
+const richBox = $('rich'), formatBar = $('format-bar'), mdBar = $('md-bar'), plusBtn = $('plus-btn'), plusMenu = $('plus-menu')
 
 // Dữ liệu chỉ nằm trong bộ nhớ — đóng hết các thiết bị là mất
 const notes = new Map()
@@ -43,6 +46,7 @@ let busy = 0
 let unread = 0
 let myName = '' // tên tài khoản đang đăng nhập (giải mã từ account.js)
 let pin = { id: null, at: 0, by: '' } // tin đang ghim (chỉ 1); bên nào ghim/bỏ ghim sau cùng thì thắng
+let mode = ['md', 'rich'].includes(store.get(FORMAT)) ? store.get(FORMAT) : ''
 const GROUP_MS = 5 * 60 * 1000
 
 /* ================= LOGIN ================= */
@@ -137,7 +141,7 @@ async function enter({ keys, name }) {
   grow()
   refreshSend()
   link = connect(keys, { onOp, onPeers })
-  if (!coarse) textBox.focus()
+  if (!coarse) focusInput()
 }
 
 $('logout-btn').addEventListener('click', () => {
@@ -160,7 +164,7 @@ $('logout-btn').addEventListener('click', () => {
 })
 
 /* ---- Menu (tài khoản, bảng màu) ---- */
-const menus = [[accountBtn, accountMenu], [themeBtn, themeMenu]]
+const menus = [[accountBtn, accountMenu], [themeBtn, themeMenu], [plusBtn, plusMenu]]
 
 function openMenu(btn, menu) {
   closeMenus()
@@ -273,7 +277,10 @@ function clean(n) {
   const v = n.voice
   const voice = v && typeof v.src === 'string' && AUDIO_RE.test(v.src) ? { src: v.src, dur: Math.max(0, Math.min(+v.dur || 0, MAX_VOICE_SECS + 5)) } : null
   if (!text.trim() && !imgs.length && !files.length && !voice) return null
-  return { id: n.id, at: n.at, by: typeof n.by === 'string' ? n.by.slice(0, 32) : '', text, imgs, files, voice }
+  // text luôn là bản chữ thường (máy cũ vẫn đọc được); rich = HTML rút gọn, lọc lại khi hiển thị
+  const rich = n.fmt === 'rich' && typeof n.rich === 'string' && n.rich.length <= MAX_RICH ? n.rich : ''
+  const fmt = n.fmt === 'md' ? 'md' : rich ? 'rich' : ''
+  return { id: n.id, at: n.at, by: typeof n.by === 'string' ? n.by.slice(0, 32) : '', text, fmt, rich, imgs, files, voice }
 }
 
 // Tên tệp an toàn để tải về (bỏ đường dẫn, ký tự điều khiển)
@@ -361,8 +368,8 @@ function renderNote(n) {
   if (n.voice) bubble.append(voicePlayer(n.voice))
   for (const f of n.files) bubble.append(fileChip(f))
   if (n.text.trim()) {
-    const p = make('div', 'note-text md')
-    p.append(renderMarkdown(n.text))
+    const p = make('div', 'note-text ' + (n.fmt || 'plain'))
+    p.append(n.fmt === 'md' ? renderMarkdown(n.text) : n.fmt === 'rich' ? renderRich(n.rich) : linkText(n.text))
     bubble.append(p)
   }
 
@@ -556,7 +563,11 @@ function applyPin(p) {
 }
 
 function noteSummary(n) {
-  if (n.text.trim()) return plainSnippet(n.text)
+  if (n.text.trim() && n.fmt === 'md') return plainSnippet(n.text)
+  if (n.text.trim()) {
+    const t = n.text.replace(/\s+/g, ' ').trim()
+    return t.length > 90 ? t.slice(0, 89) + '…' : t
+  }
   if (n.voice) return 'Voice message'
   if (n.files.length) return n.files.map(f => f.name).join(', ')
   return n.imgs.length > 1 ? `${n.imgs.length} photos` : 'Photo'
@@ -682,13 +693,20 @@ feed.addEventListener('scroll', () => appBar.classList.toggle('scrolled', feed.s
 /* ================= SOẠN & GỬI ================= */
 composer.addEventListener('submit', async e => {
   e.preventDefault()
-  const text = textBox.value.replace(/\s+$/, '')
+  const rich = mode === 'rich' && hasText() ? serialize(richBox) : ''
+  const text = (mode === 'rich' ? richBox.innerText : textBox.value).replace(/\s+$/, '')
   if ((!text.trim() && !pending.length) || busy) return
+  if (rich.length > MAX_RICH || text.length > 5000) {
+    composeErr.textContent = 'This message is too long.'
+    return
+  }
   const note = {
     id: crypto.randomUUID(),
     at: Date.now(),
     by: myName,
     text: text.trim() ? text : '',
+    fmt: text.trim() ? (rich ? 'rich' : mode === 'md' ? 'md' : '') : '',
+    rich,
     imgs: pending.filter(p => p.kind === 'img').map(({ src, w, h }) => ({ src, w, h })),
     files: pending.filter(p => p.kind === 'file').map(({ name, type, size, data }) => ({ name, type, size, data })),
   }
@@ -717,7 +735,7 @@ async function sendNote(note) {
 
 textBox.addEventListener('keydown', e => {
   // máy tính: Enter gửi, Shift+Enter xuống dòng; điện thoại: Enter xuống dòng. Bỏ qua khi đang gõ bộ gõ (IME)
-  const inFence = (textBox.value.slice(0, textBox.selectionStart).match(/```/g) || []).length % 2 === 1
+  const inFence = mode === 'md' && (textBox.value.slice(0, textBox.selectionStart).match(/```/g) || []).length % 2 === 1
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !coarse && !inFence) {
     e.preventDefault()
     composer.requestSubmit()
@@ -740,8 +758,16 @@ function grow() {
 }
 
 // Ô trống → hiện micro (ghi âm); có nội dung → hiện nút gửi (giống Google Messages)
+function hasText() {
+  return mode === 'rich' ? !!richBox.textContent.trim() : !!textBox.value.trim()
+}
+
+function focusInput() {
+  ;(mode === 'rich' ? richBox : textBox).focus()
+}
+
 function refreshSend() {
-  const has = !!textBox.value.trim() || pending.length > 0
+  const has = hasText() || pending.length > 0
   sendBtn.hidden = !has
   micBtn.hidden = has || !canRecord
   sendBtn.disabled = busy > 0 || !has
@@ -750,11 +776,192 @@ function refreshSend() {
 
 function resetComposer() {
   textBox.value = ''
+  richBox.replaceChildren()
+  richBox.classList.add('empty')
   pending = []
   renderPreviews()
   grow()
   refreshSend()
 }
+
+/* ---- Nút + : đính kèm, bật/tắt định dạng ---- */
+$('pick-media').addEventListener('click', () => {
+  closeMenus()
+  $('media').click()
+})
+$('pick-file').addEventListener('click', () => {
+  closeMenus()
+  fileInput.click()
+})
+$('mode-rich').addEventListener('click', () => {
+  closeMenus()
+  setMode(mode === 'rich' ? '' : 'rich')
+})
+$('mode-md').addEventListener('click', () => {
+  closeMenus()
+  setMode(mode === 'md' ? '' : 'md')
+})
+$('rich-off').addEventListener('click', () => setMode(''))
+$('md-off').addEventListener('click', () => setMode(''))
+
+const HINTS = {
+  '': 'Enter to post · Shift + Enter for a new line',
+  md: 'Markdown on · Enter to post · inside a ``` block, Enter adds a line',
+  rich: 'Formatting on · select text, then pick a style · Enter to post',
+}
+
+// Đổi kiểu soạn: chữ đã gõ được giữ lại (sang chữ thường thì bỏ định dạng)
+function setMode(next) {
+  if (next === mode) return
+  if (next === 'rich') {
+    richBox.innerText = textBox.value
+  } else if (mode === 'rich') {
+    textBox.value = richBox.innerText.replace(/\n$/, '')
+    richBox.replaceChildren()
+  }
+  mode = next
+  store.set(FORMAT, mode)
+  renderMode()
+  grow()
+  refreshSend()
+  focusInput()
+}
+
+function renderMode() {
+  const rich = mode === 'rich'
+  formatBar.hidden = !rich || !!rec
+  mdBar.hidden = mode !== 'md' || !!rec
+  richBox.hidden = !rich
+  textBox.hidden = rich
+  richBox.classList.toggle('empty', !richBox.textContent.trim() && !richBox.querySelector('li'))
+  $('mode-rich').setAttribute('aria-checked', String(rich))
+  $('mode-md').setAttribute('aria-checked', String(mode === 'md'))
+  plusBtn.classList.toggle('on', !!mode)
+  $('hint').textContent = HINTS[mode]
+  if (!rich) setExpanded(false)
+}
+
+/* ---- Thanh định dạng kiểu Word ---- */
+const sizePop = $('size-pop'), colorPop = $('color-pop')
+
+function exec(cmd, value = null) {
+  if (!richBox.contains(document.getSelection()?.anchorNode)) {
+    richBox.focus() // mất vùng chọn → đặt con trỏ cuối ô soạn
+    document.getSelection()?.selectAllChildren(richBox)
+    document.getSelection()?.collapseToEnd()
+  }
+  document.execCommand('styleWithCSS', false, false) // <b>, <font> thay vì style="" → dễ chuyển sang thẻ cho phép
+  document.execCommand(cmd, false, value)
+  richBox.dispatchEvent(new Event('input'))
+  updateStates() // bấm B khi chưa chọn chữ: vùng chọn không đổi nên selectionchange không chạy
+}
+
+// Bấm nút không được lấy focus khỏi ô soạn, nếu không vùng chữ đang chọn sẽ mất
+for (const el of [formatBar, sizePop, colorPop]) el.addEventListener('pointerdown', e => {
+  if (e.target.closest('button')) e.preventDefault()
+})
+
+formatBar.addEventListener('click', e => {
+  const b = e.target.closest('button[data-cmd], button[data-pop]')
+  if (!b) return
+  if (b.dataset.pop) return togglePop($(b.dataset.pop), b)
+  closePops()
+  exec(b.dataset.cmd)
+})
+
+function togglePop(pop, btn) {
+  const open = pop.hidden
+  closePops()
+  if (!open) return
+  const dock = $('dock').getBoundingClientRect(), r = btn.getBoundingClientRect()
+  pop.hidden = false
+  pop.style.left = Math.max(8, Math.min(r.left - dock.left, dock.width - pop.offsetWidth - 8)) + 'px'
+  pop.style.bottom = dock.bottom - r.top + 4 + 'px'
+  btn.setAttribute('aria-expanded', 'true')
+}
+
+function closePops() {
+  for (const p of [sizePop, colorPop]) p.hidden = true
+  for (const b of formatBar.querySelectorAll('[data-pop]')) b.setAttribute('aria-expanded', 'false')
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.fmt-pop, [data-pop]')) closePops()
+})
+
+sizePop.addEventListener('click', e => {
+  const b = e.target.closest('[data-size]')
+  if (!b) return
+  closePops()
+  exec('fontSize', SIZES[b.dataset.size] || '3')
+})
+
+colorPop.addEventListener('click', e => {
+  const b = e.target.closest('[data-color]')
+  if (!b) return
+  closePops()
+  const c = COLORS[b.dataset.color]
+  // "mặc định" = màu chữ hiện tại của ô soạn; khi gửi không khớp màu nào nên bị bỏ
+  exec('foreColor', c || getComputedStyle(richBox).color)
+  $('color-btn').style.setProperty('--pick', c ? `var(--rc-${b.dataset.color})` : '')
+})
+
+$('expand-btn').addEventListener('click', () => setExpanded(!composer.classList.contains('expanded')))
+
+function setExpanded(on) {
+  composer.classList.toggle('expanded', on)
+  const b = $('expand-btn')
+  b.setAttribute('aria-pressed', String(on))
+  b.title = b.ariaLabel = on ? 'Smaller editor' : 'Larger editor'
+  b.querySelector('use').setAttribute('href', on ? '#i-collapse' : '#i-expand')
+}
+
+// Nút B / I / U / S / danh sách sáng lên theo vị trí con trỏ
+const STATE_CMDS = ['bold', 'italic', 'underline', 'strikeThrough', 'insertUnorderedList', 'insertOrderedList']
+document.addEventListener('selectionchange', updateStates)
+
+function updateStates() {
+  if (mode !== 'rich' || !richBox.contains(document.getSelection()?.anchorNode)) return
+  for (const cmd of STATE_CMDS) {
+    let on = false
+    try { on = document.queryCommandState(cmd) } catch { /* trình duyệt không hỗ trợ */ }
+    formatBar.querySelector(`[data-cmd="${cmd}"]`).setAttribute('aria-pressed', String(on))
+  }
+}
+
+richBox.addEventListener('input', () => {
+  if (!richBox.textContent.trim() && !richBox.querySelector('li')) {
+    if (richBox.innerHTML === '<br>') richBox.replaceChildren()
+    richBox.classList.add('empty')
+  } else richBox.classList.remove('empty')
+  refreshSend()
+})
+
+richBox.addEventListener('keydown', e => {
+  // máy tính: Enter gửi (trừ trong danh sách: thêm dòng mới), Shift+Enter xuống dòng; điện thoại: Enter xuống dòng
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || coarse) return
+  const node = document.getSelection()?.anchorNode
+  const li = (node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement)?.closest('li')
+  if (li && richBox.contains(li)) return
+  e.preventDefault()
+  composer.requestSubmit()
+})
+if (coarse) richBox.enterKeyHint = 'enter'
+
+// Dán / thả: chỉ lấy chữ thường (không mang HTML, ảnh từ trang khác vào)
+richBox.addEventListener('paste', e => {
+  e.preventDefault()
+  const files = [...(e.clipboardData?.files || [])]
+  if (files.length) return addFiles(files)
+  document.execCommand('insertText', false, e.clipboardData?.getData('text/plain') || '')
+})
+
+// Cmd/Ctrl + Shift + X: bật/tắt định dạng (giống Zalo)
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'x' && e.shiftKey && (e.metaKey || e.ctrlKey) && !space.hidden && !rec) {
+    e.preventDefault()
+    setMode(mode === 'rich' ? '' : 'rich')
+  }
+})
 
 for (const input of [fileInput, $('media')]) {
   input.addEventListener('change', () => {
@@ -821,7 +1028,7 @@ async function addFiles(list) {
   }
   busy--
   refreshSend()
-  if (!coarse) textBox.focus()
+  if (!coarse) focusInput()
 }
 
 // Thu nhỏ + nén ngay trên máy (JPEG 1600px); GIF nhỏ giữ nguyên để còn chuyển động
@@ -916,6 +1123,7 @@ micBtn.addEventListener('click', async () => {
   mr.start(250)
   composeRow.hidden = true
   previews.hidden = true
+  formatBar.hidden = mdBar.hidden = true
   recorder.hidden = false
   recTime.textContent = '0:00'
   rec.timer = setInterval(() => {
@@ -940,6 +1148,7 @@ async function finishRecording() {
   recorder.hidden = true
   composeRow.hidden = false
   previews.hidden = !pending.length
+  renderMode()
   const dur = (Date.now() - r.start) / 1000
   if (!r.send) return
   if (dur < 0.7 || !r.chunks.length) {
@@ -993,4 +1202,5 @@ if (vv) {
   fit()
 }
 
+renderMode()
 boot()

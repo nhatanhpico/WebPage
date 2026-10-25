@@ -905,6 +905,7 @@ code {
 }
 
 .bubble {
+  --fg: var(--on-surface);
   position: relative;
   max-width: 100%;
   overflow: hidden;
@@ -914,6 +915,7 @@ code {
 }
 
 .note.mine .bubble {
+  --fg: var(--on-primary);
   border-radius: 20px 20px 4px 20px;
   background: var(--primary);
   color: var(--on-primary);
@@ -1170,9 +1172,11 @@ code {
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  border: 0;
   border-radius: 50%;
   background: var(--sw);
+  /* viền bằng box-shadow: viền trong suốt làm gradient lặp ra mép → trông như ô vuông */
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.35);
   cursor: pointer;
   transition: transform 0.15s var(--ease), box-shadow 0.15s linear;
 }
@@ -1184,8 +1188,8 @@ code {
 .swatch[data-theme="navy"] { --sw: linear-gradient(135deg, #0f1b33 50%, #a8c8ff 50%); }
 .swatch[data-theme="purple"] { --sw: linear-gradient(135deg, #1a1029 50%, #d4bbff 50%); }
 .swatch[data-theme="black"] { --sw: linear-gradient(135deg, #131314 50%, #a8c7fa 50%); }
-.swatch[data-theme="white"] { --sw: linear-gradient(135deg, #ffffff 50%, #0b57d0 50%); border-color: #c4c7c5; }
-.swatch[data-theme="paper"] { --sw: linear-gradient(135deg, #f7f0dc 50%, #7c5800 50%); border-color: #d4c8aa; }
+.swatch[data-theme="white"] { --sw: linear-gradient(135deg, #ffffff 50%, #0b57d0 50%); }
+.swatch[data-theme="paper"] { --sw: linear-gradient(135deg, #f7f0dc 50%, #7c5800 50%); }
 
 .swatch .i {
   width: 18px;
@@ -1200,7 +1204,7 @@ code {
 }
 
 .swatch[aria-checked="true"] {
-  box-shadow: 0 0 0 2px var(--surface-container), 0 0 0 4px var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.35), 0 0 0 2px var(--surface-container), 0 0 0 4px var(--primary);
 }
 
 .swatch[aria-checked="true"] .i {
@@ -1461,8 +1465,33 @@ code {
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
 
+/* ---- Định dạng chữ: màu trộn với màu chữ của nơi hiển thị → đọc được trên mọi giao diện / bong bóng ---- */
+:root {
+  --rc-red: color-mix(in oklab, #e53935 72%, currentColor);
+  --rc-orange: color-mix(in oklab, #f57c00 72%, currentColor);
+  --rc-green: color-mix(in oklab, #2e9d4a 72%, currentColor);
+  --rc-blue: color-mix(in oklab, #1e88e5 72%, currentColor);
+  --rc-purple: color-mix(in oklab, #9c3dbf 72%, currentColor);
+}
+
+.c-def { color: var(--fg); }
+.c-red, .rich-input font[color="#e53935"] { color: var(--rc-red); }
+.c-orange, .rich-input font[color="#f57c00"] { color: var(--rc-orange); }
+.c-green, .rich-input font[color="#2e9d4a"] { color: var(--rc-green); }
+.c-blue, .rich-input font[color="#1e88e5"] { color: var(--rc-blue); }
+.c-purple, .rich-input font[color="#9c3dbf"] { color: var(--rc-purple); }
+
+.fs-s, .rich-input font:is([size="1"], [size="2"]) { font-size: 0.85em; }
+.fs-l, .rich-input font:is([size="4"], [size="5"]) { font-size: 1.25em; line-height: 1.3; }
+.fs-xl, .rich-input font:is([size="6"], [size="7"]) { font-size: 1.6em; line-height: 1.25; }
+
+.note-text.plain {
+  white-space: pre-wrap;
+}
+
 /* ---- Ô soạn: thanh dạng viên thuốc trên surface-container-high ---- */
 .dock {
+  position: relative;
   flex: none;
   padding: 8px 16px calc(12px + env(safe-area-inset-bottom, 0px));
 }
@@ -1554,8 +1583,221 @@ code {
   color: var(--on-surface-variant);
 }
 
-.attach:has(input:focus-visible) {
-  outline: 3px solid var(--primary);
+/* ---- Nút + và menu của nó (mở lên trên ô soạn) ---- */
+.plus-btn .i {
+  transition: transform 0.2s var(--ease);
+}
+
+.plus-btn[aria-expanded="true"] .i {
+  transform: rotate(45deg);
+}
+
+.plus-btn.on {
+  color: var(--primary);
+}
+
+.menu.plus-menu {
+  top: auto;
+  right: auto;
+  bottom: calc(100% - 4px);
+  left: 16px;
+  min-width: 260px;
+  transform-origin: bottom left;
+}
+
+.plus-menu .menu-item {
+  height: auto;
+  min-height: 48px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.menu-label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.menu-label .menu-sub {
+  font-weight: 400;
+}
+
+.menu-item .menu-check {
+  visibility: hidden;
+  color: var(--primary);
+}
+
+.menu-item[aria-checked="true"] .menu-check {
+  visibility: visible;
+}
+
+/* ---- Thanh định dạng kiểu Word ---- */
+.format-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.format-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.icon-btn.fmt {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--shape-s);
+}
+
+.icon-btn.fmt .i {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-btn.fmt[aria-pressed="true"],
+.icon-btn.fmt[aria-expanded="true"] {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.fmt-sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--outline-variant);
+}
+
+.md-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 0 16px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.033em;
+  color: var(--on-surface-variant);
+}
+
+.md-bar > .i {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
+}
+
+.md-bar-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.md-bar .icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.md-bar .icon-btn .i {
+  width: 18px;
+  height: 18px;
+}
+
+/* Bảng chọn cỡ / màu: neo theo nút trong thanh định dạng (main.js đặt left/bottom) */
+.fmt-pop {
+  position: absolute;
+  z-index: 20;
+  padding: 8px 0;
+  border-radius: var(--shape-xs);
+  background: var(--surface-container);
+  color: var(--on-surface);
+  box-shadow: var(--elev-2);
+  animation: menu-in 0.15s var(--ease) both;
+  transform-origin: bottom left;
+}
+
+.fmt-opt {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 140px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  text-align: left;
+  color: inherit;
+}
+
+.fmt-opt:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.fmt-pop.colors {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.color-dot {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.color-dot[data-color=""] {
+  border-color: var(--on-surface-variant);
+  background: linear-gradient(to top right, transparent 45%, var(--on-surface-variant) 45% 55%, transparent 55%);
+}
+
+.color-dot:hover {
+  outline: 2px solid var(--outline);
+  outline-offset: 2px;
+}
+
+/* Ô soạn có định dạng */
+.compose-input.rich-input {
+  position: relative;
+  height: auto;
+  min-height: 40px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.rich-input.empty::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  color: var(--on-surface-variant);
+  pointer-events: none;
+}
+
+.composer.expanded .rich-input {
+  min-height: min(30vh, 240px);
+  max-height: min(55vh, 480px);
+}
+
+.rich-input ul,
+.rich-input ol,
+.rich ul,
+.rich ol {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.rich-input blockquote {
+  margin: 0 0 0 24px !important;
+}
+
+.rich .ind {
+  margin-left: 24px;
 }
 
 /* Không còn thanh cuộn: chiều cao bám theo nội dung, chỉ cuộn khi vượt max-height (main.js) */
@@ -1755,6 +1997,10 @@ code {
   .dock {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .menu.plus-menu {
+    left: 12px;
   }
 
   .note {
