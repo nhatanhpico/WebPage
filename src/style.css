@@ -190,6 +190,44 @@
   display: none !important;
 }
 
+/* Thanh cuộn theo màu giao diện cho mọi vùng cuộn (danh sách tin, ô soạn, khối code…): mảnh, bo tròn, nền trong suốt */
+:root {
+  --scroll-thumb: color-mix(in srgb, var(--on-surface-variant) 40%, transparent);
+  --scroll-thumb-hover: color-mix(in srgb, var(--on-surface-variant) 65%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+/* Safari chưa hỗ trợ scrollbar-color */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--scroll-thumb) padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+
+/* khối code luôn nền tối */
+.code-block {
+  --scroll-thumb: rgba(230, 237, 243, 0.25);
+  --scroll-thumb-hover: rgba(230, 237, 243, 0.45);
+}
+
 html,
 body {
   margin: 0;
